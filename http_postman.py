@@ -13,7 +13,7 @@ class httpPostman:
         #self.cam_court_map = cam_manager
         self.http()#self.datadict,self.cam_court_map)
 
-    def http(self):#,datadict,cam_court_map):
+    def http(self):
         courtmapped = False
         court1 = 0
         court2 = 0
@@ -26,12 +26,9 @@ class httpPostman:
             except KeyError:
                 pass
             #todo : get these from dictionary passed,not hardcoded
-            print "Blah"
-            #print court1, court2
+
             print "data_dict",self.datadict
             print "court1 = ",court1,"court2 = ",court2
-            #court1=1
-            #court2=1
             query_args={'count1':str(1+court1),'count2':str(1+court2)}
             #TODO : change PHP code, so that it subtracts 1 from the request and shows it. this will be scalable later to any number of people
 
@@ -46,7 +43,7 @@ class httpPostman:
                 pass
 
             print "end of http"
-            time.sleep(5)
+            time.sleep(60)
         #t3 = threading.Timer(1.0, beginPostman, args=(self.url,self.datadict,)).start()
 
 
