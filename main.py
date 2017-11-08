@@ -3,13 +3,16 @@ import vidproc
 import fileutils
 import http_postman
 import multiprocessing
+from collections import defaultdict
+
+# MasterManager.register('defaultdict', defaultdict, DictProxy)
 
 if __name__ == '__main__':
 
-    camslist = [0]  # Add video files as strings to this list for video file from disk
+    camslist = [0,1,2]  # Add video files as strings to this list for video file from disk
 
-    site_url = 'http://172.16.0.30/httpclient.html'
-    datafile = './roidata.pkl'
+    site_url = '127.0.0.1'
+    datafile = './.data/.roidata.pkl'
 
     courtmapping = {0: 'court1', 1: 'court2'}
 
@@ -25,15 +28,15 @@ if __name__ == '__main__':
             try:
                 roi_info = roi_data[cam_ide]
             except KeyError:
-                pass
+                roi_info = None
         else:
             roi_info = None
         print "roi_info = ",roi_info
-        p = multiprocessing.Process(target=vidproc.startcam, args = (cam_ide, datamgdict, roi_info),name = 'VideoProcess@%s'%(str(cam_ide)))
+        p = multiprocessing.Process(target=vidproc.startcam, args = (cam_ide, datamgdict, roi_info),name = 'VideoProcess@%s'%str(cam_ide))
         p.start()
         processlist.append(p)
 
-    p1 = multiprocessing.Process(target=http_postman.beginPostman, args=(site_url, datamgdict, cam_mgr), name = 'HttpPostman@%s'%(site_url))
+    p1 = multiprocessing.Process(target=http_postman.beginPostman, args=(site_url, datamgdict, cam_mgr), name = 'HttpPostman@%s'% site_url)
     p1.start()
     processlist.append(p1)
 

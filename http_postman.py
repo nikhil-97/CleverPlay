@@ -1,9 +1,9 @@
-''' SENDING DATA TO SERVER '''
-import urllib,urllib2
+"""SENDING DATA TO SERVER """
 import requests
-import threading
+# import threading
 import time
 
+REQUESTS_DELAY = 60
 class httpPostman:
 
     def __init__(self,url,managerdict,cam_manager):
@@ -17,7 +17,7 @@ class httpPostman:
         courtmapped = False
         court1 = 0
         court2 = 0
-        while(True):
+        while True :
 
             #if(courtmapped):
             try:
@@ -33,6 +33,7 @@ class httpPostman:
             #TODO : change PHP code, so that it subtracts 1 from the request and shows it. this will be scalable later to any number of people
 
             print "query_args=",query_args
+            # noinspection PyBroadException
             try:
                 #response = self.send_request(self.url, query_args)
                 response = requests.post(self.url,params = query_args)
@@ -43,17 +44,9 @@ class httpPostman:
                 pass
 
             print "end of http"
-            time.sleep(60)
+            time.sleep(REQUESTS_DELAY)
         #t3 = threading.Timer(1.0, beginPostman, args=(self.url,self.datadict,)).start()
 
-
-    def send_request(url,query_args):
-        data = urllib.urlencode(query_args)
-        request = urllib2.Request(url + data)
-        respond = urllib2.urlopen(request)
-        return respond
-
-        # time.sleep(30)
 
 def beginPostman(site_url,mgrdict,cam_manager):
     postman = httpPostman(site_url,mgrdict,cam_manager)

@@ -2,8 +2,7 @@ import numpy as np
 import cv2
 import sys
 from collections import defaultdict
-import threading
-import fileutils
+
 
 cv2.setUseOptimized(True)
 master_dict= defaultdict(list)
@@ -13,7 +12,7 @@ min_presence = 250
 max_presence_trackbar = 500
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-savedatafile = './roidata.pkl'
+savedatafile = './.data/.roidata.pkl'
 
 
 class VideoProcessor:
@@ -72,15 +71,16 @@ class VideoProcessor:
             if (self.roi_xyz != None and self.rois_loaded==False):
                 for rois in self.roi_xyz:
                     newroi = RoiDraw(self, (rois[0], rois[1]), (rois[2], rois[3]))
-                    print "newroi = ", newroi
                     newroi.roi_done = True
                     newroi.initRoi()
-                    print master_dict
+                    # print "newroi = ", newroi
                     master_dict[self.cam].append(newroi)
+                    print  master_dict
 
                 self.rois_loaded = True
 
-            for roiinstance in master_dict[self.cam]:
+            # print " master_dict = ", master_dict
+            for roiinstance in  master_dict[self.cam]:
                 cv2.rectangle(self.frame1, (roiinstance.roi_x1, roiinstance.roi_y1),
                               (roiinstance.roi_x2, roiinstance.roi_y2), (0, 255, 0), 2)
                 if (roiinstance.roi_done):
@@ -92,31 +92,13 @@ class VideoProcessor:
                     cv2.waitKey(1)
                     self.presence += self.checkPresence(roiinstance.roi_bkgsub,min_presence)
                     ix += 1
+
             self.data_dict[self.cam] = self.presence
             cv2.putText(self.frame1,str(self.cam),(20,20),FONT,0.5,(0,0,255),2,cv2.CV_AA)
+            if(self.roi_xyz==None):
+                cv2.putText(self.frame1, "Doesn't look like there are any ROIs. Run calibrateROI.py first", (50, 350), FONT, 0.5, (0, 0, 255), 1, cv2.CV_AA)
             cv2.imshow(self.windowname, self.frame1)
-            self.key = cv2.waitKey(1) & 0xFF
-
-            if(self.key == ord('r')):
-                newroi = RoiDraw(self,(0,0),(1,1))
-                master_dict[self.cam].append(newroi)
-                print "master_dict = ",master_dict.items()
-
-            if(self.key == ord('s')):
-                overwrite_authorized = not overwrite_authorized
-                if(self.roidataloaded and overwrite_authorized==False):
-                    cv2.putText(self.frame1, "ROI Data already exists. Press 's' again to overwrite.", (400, 200), FONT,
-                                (0, 0, 255), 2, cv2.CV_AA)
-                    cv2.waitKey(0)
-                if(overwrite_authorized):
-                    savethread = threading.Thread(target = fileutils.saveRoiToFile,name = 'saveThread',args=(master_dict,savedatafile))
-                    savethread.start()
-                    savethread.join()
-
-            if(self.key == ord('d')):
-                print "Deleting file"
-                master_dict.clear()
-                fileutils.delete_data_file(savedatafile)
+            self.key = cv2.waitKey(50) & 0xFF
 
             if self.key == ord('x') or self.key == ord('X'):
                 self.cap.release()
@@ -176,8 +158,7 @@ def startcam(cam_ide,datamanager,roi_info):
     try:
         c = VideoProcessor(cam_ide,datamanager,roi_info)
     except (cv2.cv.error,cv2.error) as e:
-        print e
-        print 'Error for cam id %s'%str(cam_ide)
+        print 'Error %s for cam id %s' % (str(e),str(cam_ide))
         return
 
     print('Video from cam id %s Start')%str(cam_ide)
