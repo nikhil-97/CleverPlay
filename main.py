@@ -9,15 +9,15 @@ from collections import defaultdict
 
 if __name__ == '__main__':
 
-    camslist = [0,1,2]  # Add video files as strings to this list for video file from disk
+    camslist = [1]  # Add video files as strings to this list for video file from disk
 
-    site_url = '127.0.0.1'
+    site_url = 'http://www.findmysport.in/tennisfinal.php'
     datafile = './.data/.roidata.pkl'
 
-    courtmapping = {0: 'court1', 1: 'court2'}
+    #courtmapping = {0: 'court1', 1: 'court2', 2 : 'court3',3 : 'court4'}
 
     datamgdict = multiprocessing.Manager().dict()
-    cam_mgr = multiprocessing.Manager().dict(courtmapping)
+    #cam_mgr = multiprocessing.Manager().dict(courtmapping)
 
     processlist = []
 
@@ -36,7 +36,8 @@ if __name__ == '__main__':
         p.start()
         processlist.append(p)
 
-    p1 = multiprocessing.Process(target=http_postman.beginPostman, args=(site_url, datamgdict, cam_mgr), name = 'HttpPostman@%s'% site_url)
+    print datamgdict
+    p1 = multiprocessing.Process(target=http_postman.beginPostman, args=(site_url, datamgdict), name = 'HttpPostman@%s'% site_url)
     p1.start()
     processlist.append(p1)
 
