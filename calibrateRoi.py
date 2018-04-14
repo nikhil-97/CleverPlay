@@ -25,16 +25,7 @@ class VideoCalibration:
             ix = 0
 
             print " master_dict = ", master_dict
-            for roiinstance in  master_dict[self.cam]:
-                cv2.rectangle(self.frame1, (roiinstance.roi_x1, roiinstance.roi_y1),
-                              (roiinstance.roi_x2, roiinstance.roi_y2), (0, 255, 0), 2)
-                if (roiinstance.roi_done):
-                    roiinstance.roi_croppedimg = vidproc.cropBounded(roiinstance.caller.frame, roiinstance.roi_x1, roiinstance.roi_y1,
-                                                          roiinstance.roi_x2, roiinstance.roi_y2)
-                    cv2.imshow('Cropped_' + str(self.cam) + str(ix), roiinstance.roi_croppedimg)
-                    roiinstance.roi_bkgsub = vidproc.VideoProcessor.subBkg(roiinstance.roi_croppedimg, roiinstance.roi_avg)
-                    cv2.imshow('Bkg_Cropped_' + str(self.cam) + str(ix), roiinstance.roi_bkgsub)
-                    ix += 1
+
 
             cv2.putText(self.frame1,str(self.cam),(20,20),FONT,0.5,(0,0,255),2,cv2.CV_AA)
 
@@ -42,8 +33,10 @@ class VideoCalibration:
             self.key = cv2.waitKey(100) & 0xFF
 
             if(self.key == ord('r')):
-                newroi = vidproc.RoiDraw(self,(0,0),(1,1))
-                master_dict[self.cam].append(newroi)
+                print type(self.frame)
+                newroiwindow = vidproc.RoiWindow(self)
+                newroi = vidproc.RoiDraw(self.windowname,newroiwindow)
+                master_dict[self.cam].append(newroiwindow)
 
             if(self.key == ord('s')):
                 savethread = threading.Thread(target = fileutils.saveRoiToFile,name = 'saveThread',args=( master_dict,savedatafile))
@@ -76,7 +69,7 @@ if __name__=='__main__':
 
     print "Running ROI Calibration"
 
-    camslist = [0, 1, 2]
+    camslist = [1]
     threadlist = []
     #datamgdict = multiprocessing.Manager().dict()
     roi_info = None
