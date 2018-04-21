@@ -13,7 +13,7 @@ import threading
 cv2.setUseOptimized(True)
 master_dict= defaultdict(list)
 
-AVGRATE = 0.05
+AVGRATE = 0.005
 min_presence = 150
 max_presence_trackbar = 500
 FONT = cv2.FONT_HERSHEY_SIMPLEX
@@ -94,12 +94,14 @@ class VideoProcessor:
             for x in master_dict:
                 listi = []
                 for m in master_dict[x]:
+                    cv2.rectangle(self.frame1, m.getRoiBounds()[0],m.getRoiBounds()[1], (255, 0, 0), 2, cv2.CV_AA)
                     listi.append(m.presence)
 
             print "listi = ",listi
 
             self.data_dict[self.cam] = listi[:]
             print "self.data_dict = ", self.data_dict
+
 
             cv2.putText(self.frame1,str(self.cam),(20,20),FONT,0.5,(0,0,255),2,cv2.CV_AA)
             if(self.roi_xyz==None):
@@ -132,6 +134,9 @@ class RoiWindow:
         self.roi_croppedimg_init = cropBounded(self.parentframe,self.roi_x1,self.roi_y1,self.roi_x2,self.roi_y2)
         self.roi_avg = np.float32(self.roi_croppedimg_init)
 
+    def getRoiBounds(self):
+        return ((self.roi_x1, self.roi_y1),(self.roi_x2, self.roi_y2))
+
     def run(self):
         t = threading.Thread(target=self.runRoi)
         t.start()
@@ -139,7 +144,7 @@ class RoiWindow:
 
     def runRoi(self):
         while(1):
-            #cv2.rectangle(self.parent, (self.roi_x1, self.roi_y1), (self.roi_x2, self.roi_y2), (0, 255, 0), 2)
+            cv2.rectangle(self.parentframe, (self.roi_x1, self.roi_y1), (self.roi_x2, self.roi_y2), (0, 255, 0), 2)
             self.roi_croppedimg = cropBounded(VideoProcessor.getCurrentFrame(self.parent), self.roi_x1, self.roi_y1, self.roi_x2, self.roi_y2)
             #cv2.imshow('Cropped_'+str(hash(self)),self.roi_croppedimg)
             self.roi_bkgsub = VideoProcessor.subBkg(self.roi_croppedimg, self.roi_avg)
@@ -200,7 +205,7 @@ if __name__ == '__main__':
     import multiprocessing
 
     # cam = cv2.VideoCapture('C:\\Python27\\Capture.avi')
-    camslist=[1] #Add video files as strings to this list for video file from disk
+    camslist=[0] #Add video files as strings to this list for video file from disk
 
     processlist=[]
     datamgdict = multiprocessing.Manager().dict()
@@ -218,6 +223,7 @@ if __name__ == '__main__':
         else:
             roi_info = None
         print "roi_info = ", roi_info
+
     for cam_ide in camslist:
         p = multiprocessing.Process(target=startcam, args=(cam_ide,datamgdict,roi_info),name='VideoProcess'+str(cam_ide))
         processlist.append(p)
