@@ -148,7 +148,7 @@ class RoiWindow:
             self.roi_croppedimg = cropBounded(VideoProcessor.getCurrentFrame(self.parent), self.roi_x1, self.roi_y1, self.roi_x2, self.roi_y2)
             #cv2.imshow('Cropped_'+str(hash(self)),self.roi_croppedimg)
             self.roi_bkgsub = VideoProcessor.subBkg(self.roi_croppedimg, self.roi_avg)
-            cv2.imshow('Bkg_Cropped_'+str(hash(self)),self.roi_bkgsub)
+            #cv2.imshow('Bkg_Cropped_'+str(hash(self)),self.roi_bkgsub)
             cv2.waitKey(50)
             self.presence = VideoProcessor.checkPresence(self.roi_bkgsub, 150)
             #print "presence = ",self.presence
