@@ -8,7 +8,7 @@ import sys
 import multiprocessing
 from collections import defaultdict
 import threading
-
+import time
 
 cv2.setUseOptimized(True)
 master_dict= defaultdict(list)
@@ -29,7 +29,9 @@ class VideoProcessor:
         self.cam = cam_id
         self.cap = cv2.VideoCapture(self.cam)
         self.initret, self.initframe = self.cap.read()
-        self.avgframe = np.float32(cv2.cvtColor(self.initframe, cv2.COLOR_RGB2GRAY))
+	time.sleep(1)
+	#if(self.initframe!=None):
+	self.avgframe = np.float32(cv2.cvtColor(self.initframe, cv2.COLOR_RGB2GRAY))
         self.windowname = 'Video_' + str(self.cam)
         cv2.namedWindow(self.windowname, cv2.WINDOW_AUTOSIZE)
         self.draw = False
@@ -89,7 +91,7 @@ class VideoProcessor:
                     newroi.setRoiBounds((rois[0], rois[1]), (rois[2], rois[3]))
                     #newroi.roi_done = True
                     newroi.run()
-                    print "newroi = ", newroi
+                   # print "newroi = ", newroi
                     master_dict[self.cam].append(newroi)
 
                 self.rois_loaded = True
@@ -100,12 +102,14 @@ class VideoProcessor:
                     cv2.rectangle(self.frame1, m.getRoiBounds()[0],m.getRoiBounds()[1], (255, 0, 0), 2, cv2.CV_AA)
                     listi.append(m.presence)
 
+
             print "listi = ",listi
             self.accumulator_array = (1-AVGRATE) * self.accumulator_array + AVGRATE*np.asarray(listi,dtype=np.double)
             print self.accumulator_array, (self.accumulator_array > CHANGE_THRESHOLD)*1
             self.data_dict[self.cam] = (self.accumulator_array > CHANGE_THRESHOLD)*1
             #if values in accumulator array > 0.5, it will evaluate to true
             # multiply by 1 gives 1 or 0 depending on the true/false value
+
             print "self.data_dict = ", self.data_dict
 
 
@@ -137,6 +141,8 @@ class RoiWindow:
     def setRoiBounds(self,(roix1,roiy1),(roix2,roiy2)):
         (self.roi_x1, self.roi_y1) = (roix1, roiy1)
         (self.roi_x2, self.roi_y2) = (roix2, roiy2)
+	cv2.rectangle(self.parentframe,(roix1,roiy1),(roix2,roiy2),(0,255,0),2)
+
         self.roi_croppedimg_init = cropBounded(self.parentframe,self.roi_x1,self.roi_y1,self.roi_x2,self.roi_y2)
         self.roi_avg = np.float32(self.roi_croppedimg_init)
 

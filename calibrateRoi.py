@@ -69,7 +69,7 @@ if __name__=='__main__':
 
     print "Running ROI Calibration"
 
-    camslist = [1]
+    camslist = [0]
     threadlist = []
     #datamgdict = multiprocessing.Manager().dict()
     roi_info = None

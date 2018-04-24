@@ -5,19 +5,12 @@ import http_postman
 import multiprocessing
 from collections import defaultdict
 
-# MasterManager.register('defaultdict', defaultdict, DictProxy)
-
-if __name__ == '__main__':
-
-    camslist = [1]  # Add video files as strings to this list for video file from disk
+def runMainScript():
+    camslist = [0]  # Add video files as strings to this list for video file from disk
 
     site_url = 'http://www.findmysport.in/tennisfinal.php'
     datafile = './.data/.roidata.pkl'
-
-    #courtmapping = {0: 'court1', 1: 'court2', 2 : 'court3',3 : 'court4'}
-
     datamgdict = multiprocessing.Manager().dict()
-    #cam_mgr = multiprocessing.Manager().dict(courtmapping)
 
     processlist = []
 
@@ -45,3 +38,36 @@ if __name__ == '__main__':
         process.join()
 
     print('End')
+    return
+    
+
+if __name__ == '__main__':
+    runMainScript()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

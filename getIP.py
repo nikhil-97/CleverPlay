@@ -14,8 +14,3 @@ def getIPaddress():
 	print response.url
 	s.close()
 
-cyberoam_autologin.runLoginScript()
-sleep(2)
-getIPaddress()
-
-

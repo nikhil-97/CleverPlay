@@ -3,7 +3,7 @@ import requests
 # import threading
 import time
 
-REQUESTS_DELAY = 1
+REQUESTS_DELAY = 60
 
 class httpPostman:
 
@@ -23,10 +23,10 @@ class httpPostman:
         while True :
             print "self.datadict http = ",self.datadict
             try:
-                court1 = self.datadict[1][0]
-                court2 = self.datadict[1][1]
-                court3 = self.datadict[1][2]
-                court4 = self.datadict[1][3]
+                court1 = self.datadict[0][0]
+                court2 = self.datadict[0][1]
+                court3 = self.datadict[0][2]
+                court4 = self.datadict[0][3]
                 print "trying court1 = ", court1, "court2 = ", court2, "court3 = ", court3, "court4 = ", court4
             except KeyError as e:
                 print "key error",e
