@@ -17,6 +17,7 @@ AVGRATE = 0.005
 min_presence = 150
 max_presence_trackbar = 500
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+CHANGE_THRESHOLD = 0.5
 
 savedatafile = './.data/.roidata.pkl'
 
@@ -38,6 +39,8 @@ class VideoProcessor:
         self.roidataloaded = False
         self.roi_xyz = roiinfo # todo : Change this variable name ASAP
         self.rois_loaded = False # todo : CHange this variable name ASAP
+        self.accumulator_array = np.asarray([0, 0, 0, 0], dtype=np.double)
+
 
 
     def cannyAuto(self,image1, sigma = 0.75):
@@ -98,8 +101,11 @@ class VideoProcessor:
                     listi.append(m.presence)
 
             print "listi = ",listi
-
-            self.data_dict[self.cam] = listi[:]
+            self.accumulator_array = (1-AVGRATE) * self.accumulator_array + AVGRATE*np.asarray(listi,dtype=np.double)
+            print self.accumulator_array, (self.accumulator_array > CHANGE_THRESHOLD)*1
+            self.data_dict[self.cam] = (self.accumulator_array > CHANGE_THRESHOLD)*1
+            #if values in accumulator array > 0.5, it will evaluate to true
+            # multiply by 1 gives 1 or 0 depending on the true/false value
             print "self.data_dict = ", self.data_dict
 
 
