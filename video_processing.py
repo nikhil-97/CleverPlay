@@ -19,11 +19,11 @@ class VideoProcessor(object):
     def __init__(self):
         pass
 
-    def attach_to_frame(self):
-        pass
+    def attach_to_frame(self,VideoFrame_frame):
+        self.attached_videoframe = VideoFrame_frame
 
     def process_frame(self):
-        pass
+        self.roi_bkgsub = ImageProcessing.background_subtraction(self.attached_videoframe.frame, self.roi_avg)
 
     def check_presence(self,region, minsum):
         total = np.sum(np.sum(region, axis = 0), axis = 0) / 1000
@@ -37,6 +37,9 @@ class VideoFrame(object):
 
     def update_video_frame(self,frame_from_camera):
         self.frame = frame_from_camera
+
+    def attach_roi_controller(self,RoiController_roictrlr):
+        pass
 
 class RoiClass(VideoFrame):
     def __init__(self):

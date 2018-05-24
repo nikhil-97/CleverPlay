@@ -8,6 +8,9 @@ class CameraManager(object):
     def __init__(self):
         pass
 
+    def get_video_frames_list(self):
+        return [0]
+
     def read_camera(self):
         cam1 = cv2.VideoCapture(0)
 
