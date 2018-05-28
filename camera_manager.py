@@ -6,7 +6,12 @@ class CameraManager(object):
     # CameraManager is responsible for decoding which camera belongs where(i.e. which camera sees which court on the field),
     # and reading the camera, and passing it to the video frame for further processing
     def __init__(self):
-        pass
+        camlist = self.get_cameras_list()
+        for cam in camlist:
+            pass
+
+    def get_cameras_list(self):
+        return [0]
 
     def get_video_frames_list(self):
         return [0]

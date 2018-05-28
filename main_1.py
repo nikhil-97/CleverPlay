@@ -1,7 +1,7 @@
 import camera_manager
 import data_manager
 import roi_controller
-import http_poster
+import web_postman
 
 
 class ExecutionController(object):
@@ -25,9 +25,10 @@ class ExecutionController(object):
         data_mgr.register_video_processor(v0)
         data_mgr.set_shared_data_pool(shared_data_pool)
 
-        web_postman = http_poster.WebPostman()
-        web_postman.set_shared_data_pool(shared_data_pool)
-        web_postman.start()
+        postman = web_postman.WebPostman()
+        postman.set_server_url('www.findmysport.in/tennisfinal.php')
+        postman.set_shared_data_pool(shared_data_pool)
+        postman.startRun()
 
     def stop(self):
         pass

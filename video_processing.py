@@ -32,8 +32,8 @@ class VideoProcessor(object):
 
 
 class VideoFrame(object):
-    def __init__(self):
-        pass
+    def __init__(self,str_name):
+        self.name = str_name
 
     def update_video_frame(self,frame_from_camera):
         self.frame = frame_from_camera
