@@ -28,6 +28,10 @@ class DisplayManager(object):
         for dm_thread in self.display_manager_threads:
             dm_thread.stop()
 
+    #TODO:
+    #def removeThreadFromList(self,idx):
+    #    self.display_manager_threads.remove(idx)
+
 class DisplayThread(threading.Thread):
 
     def __init__(self,VideoFrame_vframe,parent_DisplayManager):
@@ -43,12 +47,11 @@ class DisplayThread(threading.Thread):
 
     def display_attached_frame(self):
         while(self._thread_is_running):
-            print self._attached_frame_name
-            #print self._attached_frame.frame
             cv2.imshow(self._attached_frame_name,self._attached_frame.frame)
             key = cv2.waitKey(1) & 0xFF
             if(key==QUIT_KEY):
                 self.stop()
+                #TODO : self.parent_display_manager.removeThreadFromList(self._attached_frame_name)
             elif(key==QUIT_ALL_KEY):
                 self.parent_display_manager.stopAllDisplays()
 
@@ -62,13 +65,17 @@ if __name__=='__main__':
     disp_mgr = DisplayManager()
 
     vf0 = video_processing.VideoFrame('Frame 0')
-    vf0.update_video_frame(np.zeros((500,500),np.uint8))
+    vf0.update_video_frame(np.zeros((320,240),np.uint8))
 
     vf1 = video_processing.VideoFrame('Frame 1')
-    vf1.update_video_frame(np.ones((500, 500), np.uint8))
+    vf1.update_video_frame(np.ones((640, 480), np.uint8))
+
+    vf2 = video_processing.VideoFrame('Frame 2')
+    vf2.update_video_frame(np.random.random_integers(low=0,high=255, size=(640,480 )))
 
     disp_mgr.attach_frame_to_display(vf0)
     disp_mgr.attach_frame_to_display(vf1)
+    disp_mgr.attach_frame_to_display(vf2)
 
     disp_mgr.start_display()
 
