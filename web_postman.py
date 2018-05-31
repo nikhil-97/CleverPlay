@@ -48,7 +48,9 @@ class WebPostman:
         # periodic sweep of shared data pool
         # post this data to server
         while(self._thread_running):
+            # TODO : acquire lock on the shared data pool
             data = self.data_sweep(self._shared_data)
+            # release acquired lock here itself
             encoded_query = self.encode_data(data)
             post_successful,response = self.post_to_server(encoded_query)
             if(post_successful==False):
@@ -59,7 +61,8 @@ class WebPostman:
         self.web_postman_thread.start()
 
     def stopPostman(self):
-        #release lock on shared data pool if it is locked
+
+        # TODO : release lock on shared data pool if it is locked
         self._thread_running=False
 
 if __name__=='__main__':
@@ -67,9 +70,9 @@ if __name__=='__main__':
     postman = WebPostman()
     postman.set_server_url('http://127.0.0.1')
     #postman.set_shared_data_pool(shared_data_pool)
-    postman.set_post_to_server_delay(1)
+    postman.set_post_to_server_delay(60)
     postman.startRun()
-    time.sleep(10)
-    postman.stopPostman()
+    #time.sleep(10)
+    #postman.stopPostman()
 
 

@@ -29,9 +29,9 @@ class VideoProcessor:
         self.cam = cam_id
         self.cap = cv2.VideoCapture(self.cam)
         self.initret, self.initframe = self.cap.read()
-	time.sleep(1)
-	#if(self.initframe!=None):
-	self.avgframe = np.float32(cv2.cvtColor(self.initframe, cv2.COLOR_RGB2GRAY))
+        time.sleep(1)
+        #if(self.initframe!=None):
+        self.avgframe = np.float32(cv2.cvtColor(self.initframe, cv2.COLOR_RGB2GRAY))
         self.windowname = 'Video_' + str(self.cam)
         cv2.namedWindow(self.windowname, cv2.WINDOW_AUTOSIZE)
         self.draw = False
