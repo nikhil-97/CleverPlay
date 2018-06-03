@@ -141,7 +141,7 @@ class RoiWindow:
     def setRoiBounds(self,(roix1,roiy1),(roix2,roiy2)):
         (self.roi_x1, self.roi_y1) = (roix1, roiy1)
         (self.roi_x2, self.roi_y2) = (roix2, roiy2)
-	cv2.rectangle(self.parentframe,(roix1,roiy1),(roix2,roiy2),(0,255,0),2)
+        cv2.rectangle(self.parentframe,(roix1,roiy1),(roix2,roiy2),(0,255,0),2)
 
         self.roi_croppedimg_init = cropBounded(self.parentframe,self.roi_x1,self.roi_y1,self.roi_x2,self.roi_y2)
         self.roi_avg = np.float32(self.roi_croppedimg_init)

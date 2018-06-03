@@ -2,14 +2,14 @@ import threading
 
 import numpy as np
 import cv2
-from video_processing import VideoFrame, VideoProcessor
+from video_processing import VideoFrame, VideoProcessingUnit
 
 
 class RoiController(object):
     def __init__(self):
         self._attached_videoframe = None
         self._controlling_rois = dict()
-        # holds info about the rois this controller is controlling as { RoiFrame : Attached VideoProcessor }
+        # holds info about the rois this controller is controlling as { RoiFrame : Attached VideoProcessingUnit }
         self._is_running = True
 
     def attach_controller_to_videoframe(self,VideoFrame_vf):
@@ -36,7 +36,7 @@ class RoiController(object):
 
     def attach_video_processors_to_controlling_rois(self):
         for roi in self._controlling_rois.keys():
-            vp = VideoProcessor()
+            vp = VideoProcessingUnit()
             vp.attach_to_frame(roi)
             self._controlling_rois.update({roi:vp})
 
@@ -53,9 +53,6 @@ class RoiController(object):
         self.initialize_rois()
         while(self._is_running):
             #for each roi, crop roi from main videoframe
-            self._attached_videoframe._access_lock.acquire()
-            self._attached_videoframe_frame = self._attached_videoframe.get_video_frame()
-            self._attached_videoframe._access_lock.release()
             for each_roiframe in self._controlling_rois.keys():
                 #each_roiframe = RoiFrame('lol')
                 # TODO : Lock each roiframe when updating. videoprocessing thread should be kept on hold while it is updating
@@ -147,9 +144,10 @@ class RoiFrame(VideoFrame):
 
 if __name__=='__main__':
     from numpy import ones,uint8
+    from common import VideoFrame
 
     vf1 = VideoFrame('Frame 1')
-    vf1.update_video_frame(ones((300, 400), uint8))
+    vf1.update_current_frame(ones((300, 400), uint8))
 
     rctrlr = RoiController()
     rctrlr.attach_controller_to_videoframe(vf1)

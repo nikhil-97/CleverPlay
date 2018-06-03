@@ -49,8 +49,8 @@ class DisplayThread(threading.Thread):
     def display_attached_frame(self):
         cv2.namedWindow(self._attached_frame_name)
         while(self._thread_is_running):
-            print self._attached_frame.name,self._attached_frame.frame, type(self._attached_frame.frame[0][0])
-            cv2.imshow(self._attached_frame_name,self._attached_frame.frame)
+            #print self._attached_frame.name,self._attached_frame.get_current_frame(), type(self._attached_frame.get_current_frame()[0][0])
+            cv2.imshow(self._attached_frame_name,self._attached_frame.get_current_frame())
             key = cv2.waitKey(50) & 0xFF
             if(key==QUIT_KEY):
                 self.stop()
@@ -63,18 +63,18 @@ class DisplayThread(threading.Thread):
         print "Stopping %s"%self._attached_frame_name
 
 if __name__=='__main__':
-    import video_processing
+    import common
 
     disp_mgr = DisplayManager()
 
     #vf0 = video_processing.VideoFrame('Frame 0')
     #vf0.update_video_frame(np.zeros((240,320),np.uint8))
 
-    vf1 = video_processing.VideoFrame('Frame 1')
-    vf2 = video_processing.VideoFrame('Frame 2')
+    vf1 = common.VideoFrame('Frame 1')
+    vf2 = common.VideoFrame('Frame 2')
 
-    vf2.update_video_frame(np.asarray(127*ones((300, 400), np.uint8)))
-    vf1.update_video_frame(np.asarray(random.random_integers(low=0,high=255, size=(480,640)),np.uint8))
+    vf2.update_current_frame(np.asarray(255*ones((300, 400), np.uint8)))
+    vf1.update_current_frame(np.asarray(random.random_integers(low=0,high=255, size=(480,640)),np.uint8))
     #disp_mgr.attach_frame_to_display(vf0)
     disp_mgr.attach_frame_to_display(vf1)
     disp_mgr.attach_frame_to_display(vf2)
