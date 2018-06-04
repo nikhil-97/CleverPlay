@@ -9,7 +9,7 @@ class DataManager(object):
     def __init__(self):
         self.data_pool = None
         self._data_dict={} # stores data in the form { DataBin_reference : whatever_data_it_has_collected }
-        self._data_manager_thread = threading.Thread(target = self.run_data_collection)
+        self._data_manager_thread = threading.Thread(name="DataManagerThread",target = self.run_data_collection)
         self._is_dm_thread_running = False
 
     def set_data_pool(self,shared_data_pool):
@@ -19,11 +19,15 @@ class DataManager(object):
         self._data_dict.update( { DataCollector_dc : 0 } )
 
     def update_dict_data(self,DataCollector_dc,dc_data):
+        #DataCollector_dc._data_update_lock.acquire(blocking=True)
         self._data_dict.update( { DataCollector_dc : dc_data } )
+        #DataCollector_dc._data_update_lock.release()
 
     def collect_all_data(self):
         for data_bin in self._data_dict.keys():
+            data_bin._data_update_lock.acquire()
             self.update_dict_data(data_bin,data_bin.get_collected_data())
+            data_bin._data_update_lock.release()
 
     def get_data_mgr_data(self):
         return self._data_dict
@@ -53,6 +57,7 @@ class DataBin:
         self._collected_data = None
         self._attached_to_processing_unit = None
         self._data_manager = None
+        self._data_update_lock = threading.RLock()
 
     def attach_to_processing_unit(self,VideoProcessingUnit_vpu):
         self._attached_to_processing_unit = VideoProcessingUnit_vpu
@@ -66,7 +71,9 @@ class DataBin:
         self._data_manager.register_data_collector(self)
 
     def update_collected_data(self,incoming_data):
+        self._data_update_lock.acquire()
         self._collected_data = incoming_data
+        self._data_update_lock.release()
 
     def get_collected_data(self):
         #if(self._collected_data is None):
@@ -94,11 +101,17 @@ if __name__=='__main__':
     dc4.register_with_data_manager(dm)
 
     dc_list = [dc1,dc2,dc3,dc4]
+    dm.start_data_manager()
+
+    idx = 0
     while(True):
+        print "idx = ",idx
+        idx += 1
         for dc in dc_list:
-            dc.update_collected_data(Random.randint(Random(),1,999))
+            dc.update_collected_data(idx+1)
+            time.sleep(0.01)
             #print dc.get_collected_data()
-            dm.collect_all_data()
-            #print dm.get_data_mgr_data()
+        print dm.get_data_mgr_data().viewvalues()
+        time.sleep(0.05)
 
 
