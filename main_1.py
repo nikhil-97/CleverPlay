@@ -25,74 +25,65 @@ class ExecutionController(object):
 
     def __init__(self):
         self._is_initialized = False
-        self.whatever  = {}
+        self.executors  = []
 
     def initialize(self):
         self.ca.initialize_manager()
-        videoframes_list = self.ca.get_video_frames_list()
-        for videoframe in videoframes_list:
-            self.whatever.update( { videoframe : None })
-            roi_ctrlr = self.setup_roi_controller(videoframe)
-            roi_ctrlr.attach_video_processors_to_controlling_rois()
-            for vpu in roi_ctrlr.get_attached_video_processors():
-                db = data_manager.DataBin()
-                vpu.attach_data_bin(db)
-                db.register_with_data_manager(self.data_mgr)
-        #print "self.whatever after roi setup = ", self.whatever
-        self._is_initialized = True
 
-    def setup_roi_controller(self,VideoFrame_vf):
-        rc = roi_controller.RoiController()
-        rc.attach_controller_to_videoframe(VideoFrame_vf)
-        self.whatever[VideoFrame_vf] = { rc : [] } #nested_dict
-        rc.initialize_rois()
-        return rc
+        cam_readers = self.ca.get_cam_readers_list()
 
-    def start_execution(self):
-        if(not self._is_initialized):
-            raise RuntimeError(
-                "Execution not initalized. Did you forget to call initialize() first ?")
-        self.ca.start_cam_mgr()
-        self.all_valid = False
-        vf_list = self.whatever.keys()
+        for cr in cam_readers:
+            ex = ExecutionBranch(cam_reader=cr,videoframe=cr._attached_videoframe,data_manager=self.data_mgr)
+            self.disp_mgr.attach_frame_to_display(cr._attached_videoframe)
+            self.executors.append(ex)
+            ex.initialize()
 
-        logging.info("Waiting for valid VideoFrames")
-        while(not self.all_valid):
-            logging.info("_")
-            for vf in vf_list:
-                if(vf.is_init_frame_valid() and vf.is_current_frame_valid()):
-                    self.all_valid = True
-                    self.disp_mgr.attach_frame_to_display(vf)
-                else:
-                    self.all_valid = False
-                    break
-                    # break ensures that no other vf can set all_valid back to true
-
-            # check all the videoframes if each of them are valid or not.
-            # if one of them is False, check everything again
-            time.sleep(0.5)
-        logging.info("All VideoFrames valid ! ")
-
-        for vf in vf_list:
-            my_rc = self.whatever[vf].keys()[0]
-            my_rc.update_init_roiframes()
-            my_rc.start_roi_controller()
-            for r in my_rc.get_controlling_rois():
-                self.disp_mgr.attach_frame_to_display(r)
-            my_rc.update_init_frames_in_vpus()
-            my_rc.start_attached_video_processors()
-
-        self.disp_mgr.start_display()
-
-        self.data_mgr.start_data_manager()
         self.data_mgr.set_data_pool(self.shared_data_pool)
-
         self.postman.set_server_url('http://127.0.0.1')
         self.postman.set_shared_data_pool(self.shared_data_pool)
-        self.postman.start_run()
+
+    def start_execution(self):
+        for exe in self.executors:
+            exe.start()
+
+        self.data_mgr.start_data_manager()
+
+        #self.postman.start_run()
 
     def stop(self):
         pass
+
+class ExecutionBranch:
+
+    def __init__(self,**kwargs):
+        self._cam_reader = kwargs['cam_reader']
+        self._videoframe = kwargs['videoframe']
+        self.data_mgr = kwargs['data_manager']
+        self._initialized = False
+
+    def initialize(self):
+        self._roicontroller = roi_controller.RoiController()
+        self._roicontroller.attach_controller_to_videoframe(self._videoframe)
+        self._roicontroller.initialize_rois()
+        self._roicontroller.attach_video_processors_to_controlling_rois()
+        for vpu in self._roicontroller.get_attached_video_processors():
+            new_databin = data_manager.DataBin()
+            vpu.attach_data_bin(new_databin)
+            new_databin.register_with_data_manager(self.data_mgr)
+
+    def start(self):
+        self._cam_reader.start_camreader()
+        logging.info("Waiting for valid VideoFrames")
+
+        while (not self._cam_reader._frames_valid):
+            logging.info("_")
+            time.sleep(0.5)
+        logging.info("VideoFrames valid!")
+
+        self._roicontroller.update_init_roiframes()
+        self._roicontroller.start_roi_controller()
+        self._roicontroller.update_init_frames_in_vpus()
+        self._roicontroller.start_attached_video_processors()
 
 
 if __name__ == '__main__':

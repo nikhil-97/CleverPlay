@@ -1,5 +1,6 @@
 import threading
 
+import logging
 import requests
 import time
 
@@ -54,7 +55,8 @@ class WebPostman:
             encoded_query = self.encode_data(data)
             post_successful,response = self.post_to_server(encoded_query)
             if(post_successful==False):
-                pass
+                logging.error('Couldn\'t post data to server')
+            print "i'm here"
             time.sleep(self.POST_TO_SERVER_DELAY)
 
     def start_run(self):

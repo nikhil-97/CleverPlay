@@ -216,12 +216,12 @@ class VideoProcessingUnit(object):
             self.check_presence_now()
             self._average_frame = self._processor.get_processing_avgframe()
             self.put_my_data_in_bin()
-            abc = np.hstack((self._frame_to_process,
-                             self._processor._processing.get_processed_frame(),
-                             self._processor._processing.get_avg_frame()
-                             ))
-            cv2.imshow('abc_'+self._attached_videoframe.name, abc)
-            cv2.waitKey(1)
+            # abc = np.hstack((self._frame_to_process,
+            #                 self._processor._processing.get_processed_frame(),
+            #                 self._processor._processing.get_avg_frame()
+            #                 ))
+            # cv2.imshow('abc_'+self._attached_videoframe.name, abc)
+            # cv2.waitKey(1)
             # cv2.imshow('vpu + '+self._attached_videoframe.name,self._processor._processing.get_processed_frame())
             # cv2.imshow('vpu_avg + ' + self._attached_videoframe.name, self._processor._processing.get_avg_frame())
             # cv2.waitKey(1)

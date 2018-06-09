@@ -48,6 +48,9 @@ class CameraManager(object):
         self._video_frames_list = list(self.videoframe_reader_map.values())
         self._is_manager_initialized = True
 
+    def get_cam_readers_list(self):
+        return self.videoframe_reader_map.keys()
+
     def get_video_frames_list(self):
         return self._video_frames_list
 
@@ -73,7 +76,9 @@ class USBCamReader:
         self._capture_device = cv2.VideoCapture(self._read_from_cam)
 
         self._read_thread = threading.Thread(name='CamReaderThread_%s'%str(self._read_from_cam), target = self.run)
+        self._frames_valid = False
         self._is_running = False
+
 
     def attach_videoframe(self,VideoFrame_vf):
         self._attached_videoframe = VideoFrame_vf
@@ -94,6 +99,8 @@ class USBCamReader:
             grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_RGB2GRAY)
             self._attached_videoframe.update_current_frame(grayframe)
             self._attached_videoframe.set_current_frame_as_valid()
+            if(not self._frames_valid):
+                self._frames_valid = True
             # cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
             # cv2.waitKey(1)
             # Uncomment imshow if you need to test
