@@ -25,9 +25,9 @@ class DataManager(object):
 
     def collect_all_data(self):
         for data_bin in self._data_dict.keys():
-            data_bin._data_update_lock.acquire()
+            #data_bin._data_update_lock.acquire()
             self.update_dict_data(data_bin,data_bin.get_collected_data())
-            data_bin._data_update_lock.release()
+            #data_bin._data_update_lock.release()
 
     def get_data_mgr_data(self):
         return self._data_dict
@@ -57,7 +57,7 @@ class DataBin:
         self._collected_data = None
         self._attached_to_processing_unit = None
         self._data_manager = None
-        self._data_update_lock = threading.RLock()
+        #self._data_update_lock = threading.RLock()
 
     def attach_to_processing_unit(self,VideoProcessingUnit_vpu):
         self._attached_to_processing_unit = VideoProcessingUnit_vpu
@@ -71,9 +71,9 @@ class DataBin:
         self._data_manager.register_data_collector(self)
 
     def update_collected_data(self,incoming_data):
-        self._data_update_lock.acquire()
+        #self._data_update_lock.acquire()
         self._collected_data = incoming_data
-        self._data_update_lock.release()
+        #self._data_update_lock.release()
 
     def get_collected_data(self):
         #if(self._collected_data is None):

@@ -45,9 +45,10 @@ class PresenceProcessing(object):
         # colourFrame.depth() == CV_64F && movingAverage.depth() == CV_64F
         # From : https://stackoverflow.com/questions/7059817/assertion-failed-with-accumulateweighted-in-opencv
 
+        #print "input_frame",input_frame,"avg_frame=",self._avg_frame
         avg = np.float32(self._avg_frame)
-        if(input_frame is None):
-            return
+        #print "avg = ",avg,avg.shape
+        #print "input",input_frame,input_frame.shape
         cv2.accumulateWeighted(input_frame, avg, self._avg_rate)
         abs_avgframe = cv2.convertScaleAbs(avg)
         self.set_avg_frame(abs_avgframe)
@@ -105,7 +106,7 @@ class DynamicPresenceProcessing(PresenceProcessing):
     def __init__(self):
         PresenceProcessing.__init__(self)
         self._processed_frame = None
-        self.minsum = 7000
+        self.minsum = 150
 
     def set_minsum(self,int_minsum):
         self.minsum = int_minsum
@@ -113,7 +114,7 @@ class DynamicPresenceProcessing(PresenceProcessing):
     def get_presence_from_frame(self, input_frame):
         frame_sum = np.sum(self.add_all_frame_pixels(input_frame)) / 10000
         # 1/10000 is the scaling factor
-        print "frame_sum = ",frame_sum
+        #print "frame_sum = ",frame_sum
         return int(frame_sum > self.minsum)
 
     def process_frame(self,frame_to_process):
@@ -144,7 +145,9 @@ class VideoProcessor:
 
     def initialize_video_frame(self, VideoFrame_vf):
         self._videoframe_to_process_on = VideoFrame_vf
-        self._processing.set_init_frame(self._videoframe_to_process_on.get_init_frame())
+
+    def update_initframe_of_videoframe(self):
+        self._processing.set_init_frame(self._videoframe_to_process_on.get_init_frame_copy())
 
     def get_processing_mode(self):
         return self._processing_mode
@@ -161,7 +164,7 @@ class VideoProcessor:
 
 class VideoProcessingUnit(object):
 
-    def __init__(self,processing_mode):
+    def __init__(self,**kwargs):
         self._attached_videoframe = None
         self._attached_data_bin = None
 
@@ -170,7 +173,11 @@ class VideoProcessingUnit(object):
         self._processing_thread = threading.Thread(name='VideoProcessingThread',target=self.run_processor)
         self._is_processing_thread_running = False
 
-        self._processor = VideoProcessor(processing_mode)
+        if("processing_mode" in kwargs):
+            pmode = kwargs["processing_mode"]
+            self._processor = VideoProcessor(pmode)
+        else:
+            self._processor = VideoProcessor('dynamic_presence')
         self._frame_to_process = None
 
         self._average_frame = None
@@ -180,6 +187,9 @@ class VideoProcessingUnit(object):
             raise ValueError("Trying to attach to None frame. Check if the VideoFrame has been correctly initialized")
         self._attached_videoframe = VideoFrame_frame
         self._processor.initialize_video_frame(self._attached_videoframe)
+
+    def update_initframe(self):
+        self._processor.update_initframe_of_videoframe()
 
     def attach_data_bin(self,DataBin_dbin):
         self._attached_data_bin = DataBin_dbin
@@ -201,18 +211,20 @@ class VideoProcessingUnit(object):
 
     def run_processor(self):
         while self._is_processing_thread_running:
-            #print 'in thread'
-            if self._attached_videoframe.get_current_frame() is None:
-                continue
-                # pass
-                # TODO : all videoframes are locked when updating their frame. video processing thread should acquire lock before processing
-            self._attached_videoframe.acquire_lock(blocking=True)
-            self._frame_to_process = self._attached_videoframe.get_current_frame().copy()
-            self._attached_videoframe.release_lock()
+            self._frame_to_process = self._attached_videoframe.get_current_frame_copy()
             self._processor.process_frame(self._frame_to_process)
             self.check_presence_now()
             self._average_frame = self._processor.get_processing_avgframe()
             self.put_my_data_in_bin()
+            abc = np.hstack((self._frame_to_process,
+                             self._processor._processing.get_processed_frame(),
+                             self._processor._processing.get_avg_frame()
+                             ))
+            cv2.imshow('abc_'+self._attached_videoframe.name, abc)
+            cv2.waitKey(1)
+            # cv2.imshow('vpu + '+self._attached_videoframe.name,self._processor._processing.get_processed_frame())
+            # cv2.imshow('vpu_avg + ' + self._attached_videoframe.name, self._processor._processing.get_avg_frame())
+            # cv2.waitKey(1)
 
 
 
@@ -235,7 +247,7 @@ if __name__ == '__main__':
     v0.set_init_frame(gray_initframe)
     v0.update_current_frame(gray_initframe)
 
-    vpu0 = VideoProcessingUnit('dynamic_presence')
+    vpu0 = VideoProcessingUnit(processing_mode='dynamic_presence')
     vpu0.attach_to_frame(v0)
     vpu0.start_processing()
 
@@ -248,8 +260,8 @@ if __name__ == '__main__':
         grayframe = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
         print len(frame.shape), len(grayframe.shape)
         v0.update_current_frame(grayframe)
-        cv2.imshow('frame',v0.get_current_frame())
-        cv2.imshow('initframe', v0.get_init_frame())
+        cv2.imshow('frame', v0.get_current_frame_copy())
+        cv2.imshow('initframe', v0.get_init_frame_copy())
         cv2.imshow('avg',vpu0._average_frame)
         cv2.imshow('lol',vpu0._processor._processing.get_processed_frame())
         cv2.waitKey(1) & 0xFF

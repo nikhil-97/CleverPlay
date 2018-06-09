@@ -1,11 +1,15 @@
+import multiprocessing
 import threading
 
+import logging
 import numpy as np
 import cv2
 import time
 from common import VideoFrame
 
 CAMERA_WARMUP_TIME_SECS = 3
+
+logging.basicConfig(level=logging.INFO,format= '%(levelname)s : %(message)s')
 
 class CameraManager(object):
     # CameraManager is responsible for decoding which camera belongs where(i.e. which camera sees which court on the field),
@@ -15,13 +19,11 @@ class CameraManager(object):
         self._camlist = self.get_connected_cameras_list()
         self._camera_framename_map = dict()
         self._video_frames_list = list()
-        self.videoframe_readthread_map = dict()
-
-        for cam in self._camlist:
-            v = VideoFrame(str(cam))
-            self.video_frames_list.append(v)
+        self.videoframe_reader_map = dict()
 
         self._is_manager_initialized = False
+
+        self._all_videoframes_valid = False
 
     def get_connected_cameras_list(self):
         # read /dev/video* on linux,get all cams
@@ -33,82 +35,105 @@ class CameraManager(object):
         # from the camera name, read the map file (map file has { camera_name : videoframe_name } )
         # get this map, and merge the cam index with videoframe_name
         # return { cam_index : videoframe_name }
-        self._camera_framename_map.update({0: 'Main Frame'})
+        self._camera_framename_map.update( { 0 : 'Main Frame' } )
 
     def initialize_manager(self):
         self._camlist = self.get_connected_cameras_list()
         self.map_videoframes_from_camlist()
         for cam_index,frame_name in self._camera_framename_map.items():
             v = VideoFrame(frame_name)
-            t = CameraReadThread(cam_index,v)
-            self.videoframe_readthread_map.update( { v : t } )
+            cr = USBCamReader(cam_index)
+            cr.attach_videoframe(v)
+            self.videoframe_reader_map.update( { cr : v } )
+        self._video_frames_list = list(self.videoframe_reader_map.values())
         self._is_manager_initialized = True
 
     def get_video_frames_list(self):
-        return self.video_frames_list
+        return self._video_frames_list
 
-    def startAllCamReadThreads(self):
-        for camread_thread in self.videoframe_readthread_map.values():
-            camread_thread.start()
+    def start_all_camreaders(self):
+        for camreader in self.videoframe_reader_map.keys():
+            camreader.start_camreader()
 
-    def stopAllCamReadThreads(self):
-        for camread_thread in self.videoframe_readthread_map.values():
-            camread_thread.stopThread()
+    def stop_all_camreaders(self):
+        for camreader in self.videoframe_reader_map.keys():
+            camreader.stop_camreader()
 
-    def startCamMgr(self):
+    def start_cam_mgr(self):
         if(not self._is_manager_initialized):
-            raise RuntimeError("Manager has not been initialized. Perhaps you forgot to call initialize_manager() ?")
-        self.startAllCamReadThreads()
+            raise RuntimeError("Camera Manager has not been initialized. Perhaps you forgot to call initialize_manager() ?")
+        self.start_all_camreaders()
 
 
-class CameraReadThread(threading.Thread):
-
-    def __init__(self,cam_index,VideoFrame_vf):
-        threading.Thread.__init__(self)
-        self._read_from_cam_idx = cam_index
-        self._videoframe = VideoFrame_vf
-        self._is_thread_running = False
+class USBCamReader:
+    def __init__(self,cam_idx):
+        self._read_from_cam = cam_idx
+        self._attached_videoframe = None
         self._initial_frame = None
+        self._capture_device = cv2.VideoCapture(self._read_from_cam)
 
-        self._capture_device = cv2.VideoCapture(self._read_from_cam_idx)
+        self._read_thread = threading.Thread(name='CamReaderThread_%s'%str(self._read_from_cam), target = self.run)
+        self._is_running = False
+
+    def attach_videoframe(self,VideoFrame_vf):
+        self._attached_videoframe = VideoFrame_vf
+
+    def read_camera(self):
+        valid, frame = self._capture_device.read()
+        if ((valid is False) or (frame is None)):
+            raise RuntimeError(
+                "Could not read a valid frame from %s. The thread has stopped." % str(self._read_from_cam))
+        return valid, frame
 
     def run(self):
-        self.warm_up_camera(CAMERA_WARMUP_TIME_SECS)
-        self._videoframe.set_init_frame(self._initial_frame)
-        self._is_thread_running = True
-        while(self._is_thread_running and self._capture_device.isOpened()):
-            valid_frame, acquired_frame = self._capture_device.read()
-            if ( (valid_frame is False) or (acquired_frame is None) ):
-                raise RuntimeError(
-                    "Could not read a valid frame from %s. The thread has stopped."%str(self._read_from_cam_idx))
-            grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_BGR2GRAY)
-            self._videoframe.update_current_frame(grayframe)
+
+        self._is_running = True
+
+        while(self._is_running and self._capture_device.isOpened()):
+            valid_frame, acquired_frame = self.read_camera()
+            grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_RGB2GRAY)
+            self._attached_videoframe.update_current_frame(grayframe)
+            self._attached_videoframe.set_current_frame_as_valid()
+            # cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
+            # cv2.waitKey(1)
+            # Uncomment imshow if you need to test
+
+        if(not self._is_running):
+            self._capture_device.release()
 
     def warm_up_camera(self,warmup_time_secs):
 
-        print 'Warming up camera ',
+        logging.info('Warming up camera')
 
-        for _ in range(1,warmup_time_secs+1):
-            print ". ",
-            valid_frame, self._initial_frame = self._capture_device.read()
-            if ((valid_frame is False) or (self._initial_frame is None)):
-                raise RuntimeError(
-                    "Could not read a valid frame from %s while warming up. The thread has stopped." % str(self._read_from_cam_idx))
+        for i in range(1,warmup_time_secs+1):
 
+            logging.info("."*i)
+
+            valid_frame, cap_frame = self.read_camera()
+            self._initial_frame = cv2.cvtColor(cap_frame, cv2.COLOR_RGB2GRAY)
             time.sleep(1)
 
-        print "\n"
+    def start_camreader(self):
 
-    def stopThread(self):
-        self._capture_device.release()
-        self._is_thread_running = False
+        self.warm_up_camera(CAMERA_WARMUP_TIME_SECS)
+        logging.info("Camera %s started\n" % str(self._read_from_cam))
 
+        self._attached_videoframe.set_init_frame(self._initial_frame)
+        self._attached_videoframe.set_init_frame_as_valid()
+
+        self._read_thread.start()
+
+
+    def stop_camreader(self):
+        self._is_running = False
 
 if __name__ == '__main__':
 
     cm = CameraManager()
     cm.initialize_manager()
-    cm.startCamMgr()
+    cm.start_cam_mgr()
     # simple as that. :O
+    time.sleep(10)
+    cm.stop_all_camreaders()
 
 

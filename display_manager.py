@@ -18,13 +18,12 @@ class DisplayManager(object):
 
         dt = DisplayThread(VideoFrame_vframe,self)
         self.display_manager_threads.append(dt)
-        print self.display_manager_threads
 
     def start_display(self):
         for dm_thread in self.display_manager_threads:
             dm_thread.start()
 
-    def stopAllDisplays(self):
+    def stop_all_displays(self):
         print 'stopping all'
         for dm_thread in self.display_manager_threads:
             dm_thread.stop()
@@ -36,7 +35,7 @@ class DisplayManager(object):
 class DisplayThread(threading.Thread):
 
     def __init__(self,VideoFrame_vframe,parent_DisplayManager):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self,name=VideoFrame_vframe.name+'DisplayThread')
         self._attached_frame = VideoFrame_vframe
         self._attached_frame_name = VideoFrame_vframe.name
         self.parent_display_manager = parent_DisplayManager
@@ -48,15 +47,17 @@ class DisplayThread(threading.Thread):
 
     def display_attached_frame(self):
         cv2.namedWindow(self._attached_frame_name)
-        while(self._thread_is_running):
-            #print self._attached_frame.name,self._attached_frame.get_current_frame(), type(self._attached_frame.get_current_frame()[0][0])
-            cv2.imshow(self._attached_frame_name,self._attached_frame.get_current_frame())
-            key = cv2.waitKey(50) & 0xFF
-            if(key==QUIT_KEY):
+        while self._thread_is_running:
+            #print self._attached_frame.name,self._attached_frame.get_current_frame_copy(), type(self._attached_frame.get_current_frame_copy()[0][0])
+            copy = self._attached_frame.get_current_frame_copy()
+            cv2.putText(copy,str(self._attached_frame.get_current_frame_number()),(100,100),cv2.FONT_HERSHEY_COMPLEX,0.5,(255,0,0),1,cv2.CV_AA)
+            cv2.imshow(self._attached_frame_name,copy)
+            key = cv2.waitKey(1) & 0xFF
+            if key == QUIT_KEY :
                 self.stop()
                 #TODO : self.parent_display_manager.removeThreadFromList(self._attached_frame_name)
-            elif(key==QUIT_ALL_KEY):
-                self.parent_display_manager.stopAllDisplays()
+            elif key == QUIT_ALL_KEY :
+                self.parent_display_manager.stop_all_displays()
 
     def stop(self):
         self._thread_is_running = False

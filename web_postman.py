@@ -57,10 +57,10 @@ class WebPostman:
                 pass
             time.sleep(self.POST_TO_SERVER_DELAY)
 
-    def startRun(self):
+    def start_run(self):
         self.web_postman_thread.start()
 
-    def stopPostman(self):
+    def stop_postman(self):
 
         # TODO : release lock on shared data pool if it is locked
         self._thread_running=False
@@ -71,7 +71,7 @@ if __name__=='__main__':
     postman.set_server_url('http://127.0.0.1')
     #postman.set_shared_data_pool(shared_data_pool)
     postman.set_post_to_server_delay(60)
-    postman.startRun()
+    postman.start_run()
     #time.sleep(10)
     #postman.stopPostman()
 

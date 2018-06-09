@@ -2,20 +2,25 @@ import threading
 
 import numpy as np
 import cv2
-from video_processing import VideoFrame, VideoProcessingUnit
+import time
+from video_processing import VideoProcessingUnit
+from common import VideoFrame
 
 
 class RoiController(object):
     def __init__(self):
         self._attached_videoframe = None
         self._controlling_rois = dict()
-        # holds info about the rois this controller is controlling as { RoiFrame : Attached VideoProcessingUnit }
-        self._is_running = True
+        # holds info about the rois this controller is controlling as
+        # { RoiFrame : Attached VideoProcessingUnit }
+        self._is_running = False
+        self._rois_initialized = False
 
     def attach_controller_to_videoframe(self,VideoFrame_vf):
         self._attached_videoframe = VideoFrame_vf
 
-    def cropFromImage(self,image_to_be_cropped,( (topleft_x, topleft_y), (botright_x, botright_y) ) ):
+    def cropFromImage(self,image_to_be_cropped,
+                      ( (topleft_x,topleft_y),(botright_x,botright_y) ) ):
         return image_to_be_cropped[topleft_y:botright_y, topleft_x:botright_x]
 
     def make_roiframes(self,roi_coords_dict):
@@ -24,7 +29,6 @@ class RoiController(object):
             idx+=1
             # make an roi for each coordinate pair in the list
             roi = RoiFrame(roi_name)
-            print roi.name
             roi.set_roi_coordinates(roi_coords[0],roi_coords[1])
             self._controlling_rois.update({roi:None})
 
@@ -32,33 +36,62 @@ class RoiController(object):
         # get from file
         # lookup roi info using the attached video frame's name
         # return list of ( (x1,y1) , (x2,y2) )
-        return {'Roi 1':((5,5),(50,50)),'Roi 2':((55,55),(50,50)),'Roi 3':((15,65),(50,50))}
+        return {'Roi 1':((5,5),(150,150)),'Roi 2':((150,150),(250,0)),'Roi 3':((0,0),(200,200))}
 
     def attach_video_processors_to_controlling_rois(self):
         for roi in self._controlling_rois.keys():
             vp = VideoProcessingUnit()
             vp.attach_to_frame(roi)
-            self._controlling_rois.update({roi:vp})
+            self._controlling_rois.update( { roi : vp } )
 
-    def start(self):
-        t = threading.Thread(target=self.run)
+    def get_controlling_rois(self):
+        return self._controlling_rois.keys()
+
+    def get_attached_video_processors(self):
+        return self._controlling_rois.values()
+
+    def start_roi_controller(self):
+        t = threading.Thread(target=self.run,name="RoiControllerThread-VF_%s"%self._attached_videoframe.name)
         t.start()
+
+    def update_init_frames_in_vpus(self):
+        vpus = self.get_attached_video_processors()
+        for vpu in vpus:
+            vpu.update_initframe()
+
+    def start_attached_video_processors(self):
+        vpus = self.get_attached_video_processors()
+        for vpu in vpus:
+            vpu.start_processing()
 
     def initialize_rois(self):
         roi_coords_list = self.get_roi_coords_for_attached_vframe()
         self.make_roiframes(roi_coords_list)
-        self.attach_video_processors_to_controlling_rois()
+        self._rois_initialized = True
+
+    def update_init_roiframes(self):
+        for each_roiframe in self._controlling_rois.keys():
+            eachroi_coords = each_roiframe.get_roi_coordinates()
+            each_roiframe.set_init_frame(
+                self.cropFromImage(self._attached_videoframe.get_init_frame_copy(), eachroi_coords))
+            each_roiframe.set_init_frame_as_valid()
 
     def run(self):
-        self.initialize_rois()
+        if(self._rois_initialized):
+            self._is_running = True
+            # allow thread running if roi's initialized
+        else:
+            raise RuntimeError(
+                "ROIs have not been initialized correctly. Perhaps you forgot to call initialize_rois() ? ")
+
         while(self._is_running):
-            #for each roi, crop roi from main videoframe
+
             for each_roiframe in self._controlling_rois.keys():
-                #each_roiframe = RoiFrame('lol')
-                # TODO : Lock each roiframe when updating. videoprocessing thread should be kept on hold while it is updating
                 eachroi_coords = each_roiframe.get_roi_coordinates()
-                croppedOutFromVideoFrame = self.cropFromImage(self._attached_videoframe.frame,eachroi_coords)
-                each_roiframe.update_video_frame(croppedOutFromVideoFrame)
+                croppedOutFromVideoFrame = self.cropFromImage(self._attached_videoframe.get_current_frame_copy(), eachroi_coords)
+                each_roiframe.update_current_frame(croppedOutFromVideoFrame)
+                each_roiframe.set_current_frame_as_valid()
+            time.sleep(0.001)
 
     def stop(self):
         self._is_running = False
@@ -151,7 +184,8 @@ if __name__=='__main__':
 
     rctrlr = RoiController()
     rctrlr.attach_controller_to_videoframe(vf1)
-    rctrlr.run()
+    rctrlr.initialize_rois()
+    rctrlr.start_roi_controller()
 
 
 
