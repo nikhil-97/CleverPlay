@@ -11,8 +11,7 @@ class WebPostman:
 
     def __init__(self):
         self.server_url = 'hardcodedstringsarebad.com'
-        self.web_postman_thread = threading.Thread(target=self.run)
-        self.web_postman_thread.setName("WebPostmanThread")
+        self.web_postman_thread = threading.Thread(name="WebPostmanThread",target=self.run)
         self._shared_data = None
         self._thread_running = True
 
@@ -56,7 +55,6 @@ class WebPostman:
             post_successful,response = self.post_to_server(encoded_query)
             if(post_successful==False):
                 logging.error('Couldn\'t post data to server')
-            print "i'm here"
             time.sleep(self.POST_TO_SERVER_DELAY)
 
     def start_run(self):

@@ -83,6 +83,9 @@ class USBCamReader:
     def attach_videoframe(self,VideoFrame_vf):
         self._attached_videoframe = VideoFrame_vf
 
+    def get_attached_videoframe(self):
+        return self._attached_videoframe
+
     def read_camera(self):
         valid, frame = self._capture_device.read()
         if ((valid is False) or (frame is None)):
@@ -90,26 +93,7 @@ class USBCamReader:
                 "Could not read a valid frame from %s. The thread has stopped." % str(self._read_from_cam))
         return valid, frame
 
-    def run(self):
-
-        self._is_running = True
-
-        while(self._is_running and self._capture_device.isOpened()):
-            valid_frame, acquired_frame = self.read_camera()
-            grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_RGB2GRAY)
-            self._attached_videoframe.update_current_frame(grayframe)
-            self._attached_videoframe.set_current_frame_as_valid()
-            if(not self._frames_valid):
-                self._frames_valid = True
-            # cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
-            # cv2.waitKey(1)
-            # Uncomment imshow if you need to test
-
-        if(not self._is_running):
-            self._capture_device.release()
-
     def warm_up_camera(self,warmup_time_secs):
-
         logging.info('Warming up camera')
 
         for i in range(1,warmup_time_secs+1):
@@ -130,6 +114,26 @@ class USBCamReader:
 
         self._read_thread.start()
 
+    def run(self):
+
+        self._is_running = True
+
+        while(self._is_running and self._capture_device.isOpened()):
+            valid_frame, acquired_frame = self.read_camera()
+            grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_RGB2GRAY)
+            self._attached_videoframe.update_current_frame(grayframe)
+            self._attached_videoframe.set_current_frame_as_valid()
+            if(not self._frames_valid):
+                self._frames_valid = True
+            # cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
+            # cv2.waitKey(1)
+            # Uncomment imshow if you need to test
+
+        if(not self._is_running):
+            self._capture_device.release()
+
+    def release_cam(self):
+        self._capture_device.release()
 
     def stop_camreader(self):
         self._is_running = False

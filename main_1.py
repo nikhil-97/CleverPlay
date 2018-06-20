@@ -33,8 +33,9 @@ class ExecutionController(object):
         cam_readers = self.ca.get_cam_readers_list()
 
         for cr in cam_readers:
-            ex = ExecutionBranch(cam_reader=cr,videoframe=cr._attached_videoframe,data_manager=self.data_mgr)
-            self.disp_mgr.attach_frame_to_display(cr._attached_videoframe)
+            vf = cr.get_attached_videoframe()
+            ex = ExecutionBranch(cam_reader=cr,videoframe=vf,data_manager=self.data_mgr)
+            self.disp_mgr.attach_frame_to_display(vf)
             self.executors.append(ex)
             ex.initialize()
 

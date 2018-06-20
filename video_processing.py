@@ -226,8 +226,6 @@ class VideoProcessingUnit(object):
             # cv2.imshow('vpu_avg + ' + self._attached_videoframe.name, self._processor._processing.get_avg_frame())
             # cv2.waitKey(1)
 
-
-
 if __name__ == '__main__':
 
     from common import VideoFrame
