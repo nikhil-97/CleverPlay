@@ -48,7 +48,6 @@ class ExecutionController(object):
             exe.start()
 
         self.data_mgr.start_data_manager()
-
         #self.postman.start_run()
 
     def stop(self):

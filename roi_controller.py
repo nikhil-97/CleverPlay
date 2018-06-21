@@ -1,5 +1,8 @@
+import json
+import pprint
 import threading
 
+import logging
 import numpy as np
 import cv2
 import time
@@ -36,7 +39,22 @@ class RoiController(object):
         # get from file
         # lookup roi info using the attached video frame's name
         # return list of ( (x1,y1) , (x2,y2) )
-        return {'Roi 1':((5,5),(150,150)),'Roi 2':((150,150),(250,0)),'Roi 3':((0,0),(200,200))}
+        decoded_roidata = {}
+        with open("roidata.json","r") as roidata_file:
+            vf_roiinfo_list = json.load(roidata_file)
+            for vf_roiinfo in vf_roiinfo_list:
+                if(vf_roiinfo['VideoFrameName']==str(self._attached_videoframe.name)):
+                    roidata = vf_roiinfo['ROIInfo']
+                    for roidat in roidata:
+                        name = roidat['ROIName']
+                        coord1 = tuple(roidat['Coordinates']['Coordinate_1'])
+                        coord2 = tuple(roidat['Coordinates']['Coordinate_2'])
+                        decoded_roidata.update( { str(name) : ( coord1,coord2 ) } )
+
+
+        print "decoded = ",decoded_roidata
+        return decoded_roidata
+        # return {'Roi 1':((5,5),(150,150)),'Roi 2':((150,150),(250,0)),'Roi 3':((0,0),(200,200))}
 
     def attach_video_processors_to_controlling_rois(self):
         for roi in self._controlling_rois.keys():
@@ -61,6 +79,7 @@ class RoiController(object):
 
     def start_attached_video_processors(self):
         vpus = self.get_attached_video_processors()
+        print "starting vpus = ",vpus
         for vpu in vpus:
             vpu.start_processing()
 
@@ -91,7 +110,11 @@ class RoiController(object):
                 croppedOutFromVideoFrame = self.cropFromImage(self._attached_videoframe.get_current_frame_copy(), eachroi_coords)
                 each_roiframe.update_current_frame(croppedOutFromVideoFrame)
                 each_roiframe.set_current_frame_as_valid()
-            time.sleep(0.001)
+                #cv2.imshow(self._attached_videoframe.name,self._attached_videoframe.get_current_frame_copy())
+                #cv2.imshow(each_roiframe.name,each_roiframe.get_current_frame_copy())
+                #logging.info(str(each_roiframe.name)+"-\n"+str(each_roiframe.get_current_frame_copy()))
+                #cv2.waitKey(1)
+            time.sleep(0.01)
 
     def stop(self):
         self._is_running = False
@@ -179,8 +202,8 @@ if __name__=='__main__':
     from numpy import ones,uint8
     from common import VideoFrame
 
-    vf1 = VideoFrame('Frame 1')
-    vf1.update_current_frame(ones((300, 400), uint8))
+    vf1 = VideoFrame('Main Frame')
+    vf1.update_current_frame(255*ones((480, 640), uint8))
 
     rctrlr = RoiController()
     rctrlr.attach_controller_to_videoframe(vf1)

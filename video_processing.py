@@ -4,6 +4,7 @@ import common
 import numpy as np
 import cv2
 
+import logging
 import abc
 
 import time
@@ -14,7 +15,7 @@ class PresenceProcessing(object):
 
     def __init__(self):
         self._init_frame = None
-        self._avg_rate = 0.005
+        self._avg_rate = 0.05
         self._avg_frame = None
 
     def set_init_frame(self, init_frame_from_videoframe):
@@ -47,8 +48,8 @@ class PresenceProcessing(object):
 
         #print "input_frame",input_frame,"avg_frame=",self._avg_frame
         avg = np.float32(self._avg_frame)
-        #print "avg = ",avg,avg.shape
-        #print "input",input_frame,input_frame.shape
+        #logging.info("avg = "+str(avg)+str(avg.shape))
+        #logging.info("input = "+str(input_frame)+str(input_frame.shape))
         cv2.accumulateWeighted(input_frame, avg, self._avg_rate)
         abs_avgframe = cv2.convertScaleAbs(avg)
         self.set_avg_frame(abs_avgframe)
@@ -148,6 +149,7 @@ class VideoProcessor:
 
     def update_initframe_of_videoframe(self):
         self._processing.set_init_frame(self._videoframe_to_process_on.get_init_frame_copy())
+        logging.info("init frame set"+self._videoframe_to_process_on.name)
 
     def get_processing_mode(self):
         return self._processing_mode
@@ -216,15 +218,12 @@ class VideoProcessingUnit(object):
             self.check_presence_now()
             self._average_frame = self._processor.get_processing_avgframe()
             self.put_my_data_in_bin()
-            # abc = np.hstack((self._frame_to_process,
-            #                 self._processor._processing.get_processed_frame(),
-            #                 self._processor._processing.get_avg_frame()
-            #                 ))
-            # cv2.imshow('abc_'+self._attached_videoframe.name, abc)
-            # cv2.waitKey(1)
-            # cv2.imshow('vpu + '+self._attached_videoframe.name,self._processor._processing.get_processed_frame())
-            # cv2.imshow('vpu_avg + ' + self._attached_videoframe.name, self._processor._processing.get_avg_frame())
-            # cv2.waitKey(1)
+            abc = np.hstack((self._frame_to_process,
+                            self._processor._processing.get_processed_frame(),
+                            self._processor._processing.get_avg_frame()
+                            ))
+            cv2.imshow('abc_'+self._attached_videoframe.name, abc)
+            cv2.waitKey(1)
 
 if __name__ == '__main__':
 

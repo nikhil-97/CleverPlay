@@ -3,6 +3,7 @@ from random import Random
 
 import time
 
+import logging
 
 class DataManager(object):
 
@@ -11,6 +12,7 @@ class DataManager(object):
         self._data_dict={} # stores data in the form { DataBin_reference : whatever_data_it_has_collected }
         self._data_manager_thread = threading.Thread(name="DataManagerThread",target = self.run_data_collection)
         self._is_dm_thread_running = False
+        self._data_avg_rate = 0.05
 
     def set_data_pool(self,shared_data_pool):
         self.data_pool = shared_data_pool
@@ -26,21 +28,32 @@ class DataManager(object):
     def collect_all_data(self):
         for data_bin in self._data_dict.keys():
             #data_bin._data_update_lock.acquire()
-            self.update_dict_data(data_bin,data_bin.get_collected_data())
+            new_data = self.weighted_average_data(data_bin,data_bin.get_collected_data())
+            self.update_dict_data(data_bin,new_data)
             #data_bin._data_update_lock.release()
+
+    def weighted_average_data(self,bin,incoming_data):
+        current_data = self._data_dict[bin]
+        if current_data is None or incoming_data is None:
+            current_data = 0
+            incoming_data = 0
+        return (1-self._data_avg_rate)*current_data + self._data_avg_rate*incoming_data
+            #self.accumulator_array = (1 - AVGRATE) * self.accumulator_array + AVGRATE * np.asarray(listi,dtype=np.double)
 
     def get_data_mgr_data(self):
         return self._data_dict
 
-    def put_data_in_data_pool(self):
+    def put_data_in_data_pool(self,incoming_data):
         # acquire lock on data pool before entering function
         pass
 
     def run_data_collection(self):
         while(self._is_dm_thread_running):
             self.collect_all_data()
+            logging.info(self._data_dict)
+            data_pool_data = self._data_dict
             # TODO : acquire data pool lock
-            self.put_data_in_data_pool()
+            self.put_data_in_data_pool(data_pool_data)
             # release data pool lock
             time.sleep(0.05)
 

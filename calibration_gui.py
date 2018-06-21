@@ -273,7 +273,11 @@ class SetupModel:
             self.roiwins_list = []
             for each_roiwin in roiwin_list:
                 self.roiwins_list.append( { "ROIName" : each_roiwin.get_roi_name(),
-                                                "Coordinates" : ( each_roiwin.get_coord1_xy() , each_roiwin.get_coord2_xy() ) })
+                                            "Coordinates" : {
+                                                "Coordinate_1" : each_roiwin.get_coord1_xy() ,
+                                                "Coordinate_2" : each_roiwin.get_coord2_xy()
+                                                }
+                                            })
 
             self.list_of_dicts_for_json.append( { "VideoFrameName" : vf.name, "ROIInfo" : self.roiwins_list} )
 
