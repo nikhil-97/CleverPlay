@@ -9,8 +9,6 @@ from common import VideoFrame
 
 CAMERA_WARMUP_TIME_SECS = 3
 
-logging.basicConfig(level=logging.INFO,format= '%(levelname)s : %(message)s')
-
 class CameraManager(object):
     # CameraManager is responsible for decoding which camera belongs where(i.e. which camera sees which court on the field),
     # and reading the camera, and passing it to the video frame for further processing
@@ -140,6 +138,7 @@ class USBCamReader:
 
 if __name__ == '__main__':
 
+    logging.basicConfig(level=logging.INFO, format='%(levelname)s : %(message)s')
     cm = CameraManager()
     cm.initialize_manager()
     cm.start_cam_mgr()

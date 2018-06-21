@@ -59,6 +59,7 @@ class WebPostman:
 
     def start_run(self):
         self.web_postman_thread.start()
+        logging.debug("Web Postman started")
 
     def stop_postman(self):
 

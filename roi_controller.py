@@ -40,16 +40,22 @@ class RoiController(object):
         # lookup roi info using the attached video frame's name
         # return list of ( (x1,y1) , (x2,y2) )
         decoded_roidata = {}
-        with open("roidata.json","r") as roidata_file:
-            vf_roiinfo_list = json.load(roidata_file)
-            for vf_roiinfo in vf_roiinfo_list:
-                if(vf_roiinfo['VideoFrameName']==str(self._attached_videoframe.name)):
-                    roidata = vf_roiinfo['ROIInfo']
-                    for roidat in roidata:
-                        name = roidat['ROIName']
-                        coord1 = tuple(roidat['Coordinates']['Coordinate_1'])
-                        coord2 = tuple(roidat['Coordinates']['Coordinate_2'])
-                        decoded_roidata.update( { str(name) : ( coord1,coord2 ) } )
+        try:
+            with open("roidata.json","r") as roidata_file:
+                vf_roiinfo_list = json.load(roidata_file)
+                for vf_roiinfo in vf_roiinfo_list:
+                    if(vf_roiinfo['VideoFrameName']==str(self._attached_videoframe.name)):
+                        roidata = vf_roiinfo['ROIInfo']
+                        for roidat in roidata:
+                            name = roidat['ROIName']
+                            coord1 = tuple(roidat['Coordinates']['Coordinate_1'])
+                            coord2 = tuple(roidat['Coordinates']['Coordinate_2'])
+                            decoded_roidata.update( { str(name) : ( coord1,coord2 ) } )
+        except IOError as e:
+            logging.critical(e)
+            logging.critical("Could not find correct roi data file. Did you forget to calibrate the ROIs first ?\n"
+                             " Run calibrate_roi.py to calibrate.")
+
 
 
         print "decoded = ",decoded_roidata
@@ -62,7 +68,7 @@ class RoiController(object):
             vp.attach_to_frame(roi)
             self._controlling_rois.update( { roi : vp } )
 
-    def get_controlling_rois(self):
+    def get_controlling_roiframes(self):
         return self._controlling_rois.keys()
 
     def get_attached_video_processors(self):
@@ -79,7 +85,6 @@ class RoiController(object):
 
     def start_attached_video_processors(self):
         vpus = self.get_attached_video_processors()
-        print "starting vpus = ",vpus
         for vpu in vpus:
             vpu.start_processing()
 
@@ -102,6 +107,8 @@ class RoiController(object):
         else:
             raise RuntimeError(
                 "ROIs have not been initialized correctly. Perhaps you forgot to call initialize_rois() ? ")
+
+        logging.debug("ROIController for VideoFrame "+str(self._attached_videoframe.name)+" started")
 
         while(self._is_running):
 

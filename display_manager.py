@@ -1,6 +1,7 @@
 import threading
 
 import cv2
+import logging
 from numpy import ones,uint8,random, dtype, array, asarray
 import numpy as np
 
@@ -20,6 +21,7 @@ class DisplayManager(object):
         self.display_manager_threads.append(dt)
 
     def start_display(self):
+        logging.debug("Display Manager Started")
         for dm_thread in self.display_manager_threads:
             dm_thread.start()
 

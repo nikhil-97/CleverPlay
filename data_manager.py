@@ -1,3 +1,4 @@
+from multiprocessing import Manager
 import threading
 from random import Random
 
@@ -13,16 +14,24 @@ class DataManager(object):
         self._data_manager_thread = threading.Thread(name="DataManagerThread",target = self.run_data_collection)
         self._is_dm_thread_running = False
         self._data_avg_rate = 0.05
+        self._data_threshold = 0.5
+        self._processed_data_dict = {}
 
     def set_data_pool(self,shared_data_pool):
-        self.data_pool = shared_data_pool
+        print type(shared_data_pool),type(dict())
+        if type(shared_data_pool) == type(dict()) or type(shared_data_pool) == type(Manager().dict()):
+            self.data_pool = shared_data_pool
+        else:
+            print "Trying to set shared data pool of type %s"%str(type(shared_data_pool))
+            raise TypeError("Needed to set shared data pool as a dict() or a multiprocessing.Manager().dict()")
 
-    def register_data_collector(self,DataCollector_dc):
-        self._data_dict.update( { DataCollector_dc : 0 } )
+    def register_data_bin(self,DataBin_db):
+        self._data_dict.update( { DataBin_db : 0 } )
+        self._processed_data_dict.update( { DataBin_db._attached_to_roiname : 0})
 
-    def update_dict_data(self,DataCollector_dc,dc_data):
+    def update_dict_data(self,DataBin_db,db_data):
         #DataCollector_dc._data_update_lock.acquire(blocking=True)
-        self._data_dict.update( { DataCollector_dc : dc_data } )
+        self._data_dict.update( { DataBin_db : db_data } )
         #DataCollector_dc._data_update_lock.release()
 
     def collect_all_data(self):
@@ -40,18 +49,25 @@ class DataManager(object):
         return (1-self._data_avg_rate)*current_data + self._data_avg_rate*incoming_data
             #self.accumulator_array = (1 - AVGRATE) * self.accumulator_array + AVGRATE * np.asarray(listi,dtype=np.double)
 
+    def threshold_averaged_data(self):
+        for db,db_val in self._data_dict.items():
+            self._processed_data_dict.update( { db._attached_to_roiname : int(db_val>self._data_threshold ) } ) #returns if True,else 0
+
     def get_data_mgr_data(self):
         return self._data_dict
 
-    def put_data_in_data_pool(self,incoming_data):
+    def put_data_in_data_pool(self,incoming_dict):
         # acquire lock on data pool before entering function
-        pass
+        self.data_pool.update(incoming_dict)
+
 
     def run_data_collection(self):
         while(self._is_dm_thread_running):
             self.collect_all_data()
-            logging.info(self._data_dict)
-            data_pool_data = self._data_dict
+            self.threshold_averaged_data()
+            #logging.debug("self._data_dict = "+str(self._data_dict))
+            logging.info("Processed collected data = " + str(self._processed_data_dict))
+            data_pool_data = self._processed_data_dict
             # TODO : acquire data pool lock
             self.put_data_in_data_pool(data_pool_data)
             # release data pool lock
@@ -60,6 +76,7 @@ class DataManager(object):
     def start_data_manager(self):
         self._is_dm_thread_running = True
         self._data_manager_thread.start()
+        logging.debug("Data Manager started")
 
     def stop_data_manager(self):
         self._is_dm_thread_running = False
@@ -70,10 +87,14 @@ class DataBin:
         self._collected_data = None
         self._attached_to_processing_unit = None
         self._data_manager = None
+        self._attached_to_roiname = None
         #self._data_update_lock = threading.RLock()
 
     def attach_to_processing_unit(self,VideoProcessingUnit_vpu):
         self._attached_to_processing_unit = VideoProcessingUnit_vpu
+
+    def set_databin_name(self,str_name):
+        self._attached_to_roiname = str_name
 
     def detach_attached_processing_unit(self):
         self.clear_collected_data()
@@ -81,7 +102,7 @@ class DataBin:
 
     def register_with_data_manager(self,DataManager_dm):
         self._data_manager = DataManager_dm
-        self._data_manager.register_data_collector(self)
+        self._data_manager.register_data_bin(self)
 
     def update_collected_data(self,incoming_data):
         #self._data_update_lock.acquire()

@@ -48,8 +48,8 @@ class PresenceProcessing(object):
 
         #print "input_frame",input_frame,"avg_frame=",self._avg_frame
         avg = np.float32(self._avg_frame)
-        #logging.info("avg = "+str(avg)+str(avg.shape))
-        #logging.info("input = "+str(input_frame)+str(input_frame.shape))
+        #logging.debug("avg.shape = "+str(avg.shape))
+        #logging.debug("input.shape = "+str(input_frame.shape))
         cv2.accumulateWeighted(input_frame, avg, self._avg_rate)
         abs_avgframe = cv2.convertScaleAbs(avg)
         self.set_avg_frame(abs_avgframe)
@@ -149,7 +149,7 @@ class VideoProcessor:
 
     def update_initframe_of_videoframe(self):
         self._processing.set_init_frame(self._videoframe_to_process_on.get_init_frame_copy())
-        logging.info("init frame set"+self._videoframe_to_process_on.name)
+        logging.debug("init frame set "+str(self._videoframe_to_process_on.name))
 
     def get_processing_mode(self):
         return self._processing_mode
@@ -183,12 +183,17 @@ class VideoProcessingUnit(object):
         self._frame_to_process = None
 
         self._average_frame = None
+        self.debug_frame = None
 
     def attach_to_frame(self,VideoFrame_frame):
         if VideoFrame_frame is None:
             raise ValueError("Trying to attach to None frame. Check if the VideoFrame has been correctly initialized")
         self._attached_videoframe = VideoFrame_frame
         self._processor.initialize_video_frame(self._attached_videoframe)
+        self.debug_frame = common.VideoFrame("DebugFrame for "+self.get_attached_frame_name())
+
+    def get_attached_frame_name(self):
+        return self._attached_videoframe.name
 
     def update_initframe(self):
         self._processor.update_initframe_of_videoframe()
@@ -196,34 +201,36 @@ class VideoProcessingUnit(object):
     def attach_data_bin(self,DataBin_dbin):
         self._attached_data_bin = DataBin_dbin
         self._attached_data_bin.attach_to_processing_unit(self)
+        self._attached_data_bin.set_databin_name(self._attached_videoframe.name)
 
     def start_processing(self):
         self._is_processing_thread_running = True
         self._processing_thread.start()
+        logging.debug("VPU for "+self._attached_videoframe.name+" started")
 
     def stop_processing(self):
         self._is_processing_thread_running = False
-        print "Stopping %s 's VideoProcessingThread" % self._attached_videoframe.name
+        logging.info("Stopping %s 's VideoProcessingThread" % self._attached_videoframe.name)
 
     def check_presence_now(self):
         self._my_data = self._processor.get_presence_now()
 
-    def put_my_data_in_bin(self):
-        self._attached_data_bin.update_collected_data(self._my_data)
+    def put_data_in_bin(self,incoming_data):
+        self._attached_data_bin.update_collected_data(incoming_data)
 
     def run_processor(self):
         while self._is_processing_thread_running:
             self._frame_to_process = self._attached_videoframe.get_current_frame_copy()
             self._processor.process_frame(self._frame_to_process)
             self.check_presence_now()
+            logging.debug("Presence = "+str(self._my_data))
             self._average_frame = self._processor.get_processing_avgframe()
-            self.put_my_data_in_bin()
-            abc = np.hstack((self._frame_to_process,
-                            self._processor._processing.get_processed_frame(),
-                            self._processor._processing.get_avg_frame()
-                            ))
-            cv2.imshow('abc_'+self._attached_videoframe.name, abc)
-            cv2.waitKey(1)
+            self.put_data_in_bin(self._my_data)
+            self.debug_frame.update_current_frame(np.hstack(
+                (self._frame_to_process,self._processor._processing.get_processed_frame(),self._processor._processing.get_avg_frame())
+            ))
+            # cv2.imshow('abc_'+self._attached_videoframe.name, abc)
+            # cv2.waitKey(1)
 
 if __name__ == '__main__':
 
