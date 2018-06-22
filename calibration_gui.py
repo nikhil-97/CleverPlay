@@ -283,7 +283,7 @@ class SetupModel:
 
         # print "self.list_of_dicts_for_json = ",self.list_of_dicts_for_json
         print "Saved roi.json as "
-        print json.dumps(self.list_of_dicts_for_json, indent=4,separators=(',', ': '))
+        print json.dumps(self.list_of_dicts_for_json, indent=4,separators=(',', ':'))
         with open("roidata.json","w") as write_file:
             json.dump(self.list_of_dicts_for_json, write_file)
 

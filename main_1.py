@@ -31,6 +31,7 @@ class ExecutionController(object):
     def __init__(self):
         self._is_initialized = False
         self.executors  = []
+        self.disp_mgr = None
         if (DISPLAY_VIDEO): self.disp_mgr = display_manager.DisplayManager()
 
     def initialize(self):
@@ -58,6 +59,7 @@ class ExecutionController(object):
 
         self.data_mgr.start_data_manager()
         #self.postman.start_run()
+        time.sleep(5)
         if self.disp_mgr is not None : self.disp_mgr.start_display()
 
     def stop(self):
@@ -99,7 +101,7 @@ class ExecutionBranch:
 
         if (self.display_mgr is not None):
             for vpu in self._roicontroller.get_attached_video_processors():
-                self.display_mgr.attach_frame_to_display(vpu.debug_frame)
+                 self.display_mgr.attach_frame_to_display(vpu.debug_frame)
 
 
 if __name__ == '__main__':

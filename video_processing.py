@@ -231,6 +231,7 @@ class VideoProcessingUnit(object):
             ))
             # cv2.imshow('abc_'+self._attached_videoframe.name, abc)
             # cv2.waitKey(1)
+            time.sleep(0.001)
 
 if __name__ == '__main__':
 
