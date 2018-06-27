@@ -5,6 +5,8 @@ import logging
 import numpy as np
 import cv2
 import time
+
+import check_cam
 from common import VideoFrame
 
 CAMERA_WARMUP_TIME_SECS = 3
@@ -26,14 +28,24 @@ class CameraManager(object):
     def get_connected_cameras_list(self):
         # read /dev/video* on linux,get all cams
         # return something like ['/dev/video0','/dev/video1','/dev/video2']
-        return [0]
+        devs = check_cam.get_connected_video_devices_paths()
+        #print "devs = ",devs
+        return devs
 
     def map_videoframes_from_camlist(self):
-        # for each cam index in camlist, get the camera name
-        # from the camera name, read the map file (map file has { camera_name : videoframe_name } )
-        # get this map, and merge the cam index with videoframe_name
-        # return { cam_index : videoframe_name }
-        self._camera_framename_map.update( { 0 : 'Main Frame' } )
+		# for each cam index in camlist, get the camera name
+		# from the camera name, read the map file (map file has { camera_name : videoframe_name } )
+		# get this map, and merge the cam index with videoframe_name
+		# return { cam_index : videoframe_name }
+
+		#cam_info = dict.fromkeys(self.get_connected_cameras_list())
+		cam_info = dict()
+		for cam_i in self.get_connected_cameras_list():
+			cam_path = cam_i.split('/')[-1]
+			cam_name = check_cam.get_v4l_name_from_dev_path(cam_path)
+			cam_info.update( { int(cam_i[-1]) : cam_name} )
+		
+		self._camera_framename_map.update( cam_info )
 
     def initialize_manager(self):
         self._camlist = self.get_connected_cameras_list()
@@ -72,6 +84,7 @@ class USBCamReader:
         self._attached_videoframe = None
         self._initial_frame = None
         self._capture_device = cv2.VideoCapture(self._read_from_cam)
+        print self._capture_device.read()
 
         self._read_thread = threading.Thread(name='CamReaderThread_%s'%str(self._read_from_cam), target = self.run)
         self._frames_valid = False
@@ -93,7 +106,13 @@ class USBCamReader:
 
     def warm_up_camera(self,warmup_time_secs):
         logging.info('Warming up camera')
-
+        
+        #self._capture_device.release()
+        #logging.info('Released camera')
+        
+        #self._capture_device.open(self._read_from_cam)
+        #logging.info('Reopened camera')
+        
         for i in range(1,warmup_time_secs+1):
 
             logging.info("."*i)
@@ -103,19 +122,18 @@ class USBCamReader:
             time.sleep(1)
 
     def start_camreader(self):
-
-        self.warm_up_camera(CAMERA_WARMUP_TIME_SECS)
-        logging.info("Camera %s started\n" % str(self._read_from_cam))
-
-        self._attached_videoframe.set_init_frame(self._initial_frame)
-        self._attached_videoframe.set_init_frame_as_valid()
-
         self._read_thread.start()
 
     def run(self):
 
         self._is_running = True
+		
+        self.warm_up_camera(CAMERA_WARMUP_TIME_SECS)
+        logging.info("Camera %s started\n" % str(self._read_from_cam))
 
+        self._attached_videoframe.set_init_frame(self._initial_frame)
+        self._attached_videoframe.set_init_frame_as_valid()
+        
         while(self._is_running and self._capture_device.isOpened()):
             valid_frame, acquired_frame = self.read_camera()
             grayframe = cv2.cvtColor(acquired_frame,cv2.COLOR_RGB2GRAY)
@@ -123,9 +141,9 @@ class USBCamReader:
             self._attached_videoframe.set_current_frame_as_valid()
             if(not self._frames_valid):
                 self._frames_valid = True
-            # cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
-            # cv2.waitKey(1)
-            # Uncomment imshow if you need to test
+            #cv2.imshow(str(self._read_from_cam),self._attached_videoframe.get_current_frame_copy())
+            #cv2.waitKey(50)
+            ## Uncomment imshow if you need to test
 
         if(not self._is_running):
             self._capture_device.release()
