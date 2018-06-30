@@ -120,7 +120,7 @@ class DynamicPresenceProcessing(PresenceProcessing):
 
     def process_frame(self,frame_to_process):
         self.accumulate_frames_to_average(frame_to_process)
-        #print "in ",self,"frame_to_process = ",frame_to_process,frame_to_process.shape,"self._avg_frame = ",self._avg_frame,self._avg_frame.shape
+        print "in ",self,"frame_to_process = ",frame_to_process,frame_to_process.shape,"self._avg_frame = ",self._avg_frame,self._avg_frame.shape
         sub = self.subtract_frames(frame_to_process,self._avg_frame)
         self._processed_frame = self.threshold_frame(sub)
 

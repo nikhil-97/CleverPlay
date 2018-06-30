@@ -66,7 +66,7 @@ class DataManager(object):
             self.collect_all_data()
             self.threshold_averaged_data()
             #logging.debug("self._data_dict = "+str(self._data_dict))
-            logging.info("Processed collected data = " + str(self._processed_data_dict))
+            #logging.debug("Processed collected data = " + str(self._processed_data_dict))
             data_pool_data = self._processed_data_dict
             # TODO : acquire data pool lock
             self.put_data_in_data_pool(data_pool_data)

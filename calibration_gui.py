@@ -21,119 +21,124 @@ HELP_STRING = '"h" - Show/Hide Help|"s" - Save|"q" - Quit without saving|"Q" - Q
 
 class CalibrationManager(object):
 
-    def __init__(self):
-        self.calibration_viewer_threads=[]
-        self.attached_videoframes=[]
+	def __init__(self):
+		self.calibration_viewer_threads=[]
+		self.attached_videoframes=[]
+		self.disp_lock = threading.RLock()
 
-    def attach_frame_to_display(self,VideoFrame_vframe):
-        self.attached_videoframes.append(VideoFrame_vframe)
+	def attach_frame_to_display(self,VideoFrame_vframe):
+		self.attached_videoframes.append(VideoFrame_vframe)
 
-        vt = ViewThread(VideoFrame_vframe,self)
-        ctrl = Controller()
-        sm = SetupModel()
-        vt.attach_controller(ctrl)
-        vt.attach_model(sm)
-        ctrl.attach_viewthread(vt)
-        ctrl.attach_model(sm)
-        self.calibration_viewer_threads.append(vt)
+		vt = ViewThread(VideoFrame_vframe,self,self.disp_lock)
+		ctrl = Controller()
+		sm = SetupModel()
+		vt.attach_controller(ctrl)
+		vt.attach_model(sm)
+		ctrl.attach_viewthread(vt)
+		ctrl.attach_model(sm)
+		self.calibration_viewer_threads.append(vt)
 
-    def start_display(self):
-        for dm_thread in self.calibration_viewer_threads:
-            dm_thread.start()
+	def start_display(self):
+		for dm_thread in self.calibration_viewer_threads:
+			dm_thread.make_window()
+			print dm_thread,dm_thread._attached_frame_name
+			
+		while True:
+			for dm_thread in self.calibration_viewer_threads:
+				if(dm_thread._thread_is_running):
+					dm_thread.show_display()
+				
+			
 
-    def stop_all_displays(self):
-        print 'stopping all'
-        for dm_thread in self.calibration_viewer_threads:
-            dm_thread.stop()
+	def stop_all_displays(self):
+		print 'stopping all'
+		for dm_thread in self.calibration_viewer_threads:
+			dm_thread.stop()
+		cv2.destroyAllWindows()
 
     #TODO:
     #def removeThreadFromList(self,idx):
     #    self.display_manager_threads.remove(idx)
 
-class ViewThread(threading.Thread):
-    def __init__(self, VideoFrame_vframe, parent_DisplayManager):
-        threading.Thread.__init__(self, name=VideoFrame_vframe.name + ' ViewThread')
-        self._attached_frame = VideoFrame_vframe
-        self._attached_frame_name = VideoFrame_vframe.name
-        self.parent_display_manager = parent_DisplayManager
-        self._thread_is_running = True
-        self._show_help = True
-        self._show_mouse_cursor = False
-        self._mouse_cursor_coords = (0,0)
-        self._attached_controller = None
-        self._attached_model = None
-        self._rois_already_setup = []
-        self._setting_roi_now = False
-        self._set_roi_coord1 = (0,0)
-        self._show_set_rois = True
+class ViewThread():
+	def __init__(self, VideoFrame_vframe, parent_DisplayManager,disp_lock):
+		#threading.Thread.__init__(self, name=VideoFrame_vframe.name + ' ViewThread')
+		self._attached_frame = VideoFrame_vframe
+		self._attached_frame_name = VideoFrame_vframe.name
+		self.parent_display_manager = parent_DisplayManager
+		self._thread_is_running = True
+		self._show_help = True
+		self._show_mouse_cursor = False
+		self._mouse_cursor_coords = (0,0)
+		self._attached_controller = None
+		self._attached_model = None
+		self._rois_already_setup = []
+		self._setting_roi_now = False
+		self._set_roi_coord1 = (0,0)
+		self._show_set_rois = True
 
-    def attach_controller(self,Controller_ctrl):
-        self._attached_controller = Controller_ctrl
+	def attach_controller(self,Controller_ctrl):
+		self._attached_controller = Controller_ctrl
 
-    def attach_model(self,SetupModel_sm):
-        self._attached_model = SetupModel_sm
+	def attach_model(self,SetupModel_sm):
+		self._attached_model = SetupModel_sm
 
-    def set_mouse_coords(self,mx,my):
-        self._mouse_cursor_coords = (mx,my)
+	def set_mouse_coords(self,mx,my):
+		self._mouse_cursor_coords = (mx,my)
+	
+	def make_window(self):
+		cv2.namedWindow(self._attached_frame_name)
+		cv2.setMouseCallback(self._attached_frame_name, self._attached_controller.mouseHandler)	
 
-    def run(self):
+	def show_display(self):
+		copy = self._attached_frame.get_current_frame_copy()
+		h,w = copy.shape[0],copy.shape[1]
+		#helptext = textwrap.wrap(HELP_STRING,width = 20)
+		if(self._show_help):
+			helptext = HELP_STRING.split('|')
+			start_x = 180
+			start_y = 20
+			line_spacing = 15
+			for i,text in enumerate(helptext):
+				y = start_y + i*line_spacing
+				cv2.putText(copy,str(text),(w-start_x,y),cv2.FONT_HERSHEY_DUPLEX,0.4,(255,0,0),1,cv2.CV_AA)
 
-        cv2.namedWindow(self._attached_frame_name)
-        cv2.setMouseCallback(self._attached_frame_name, self._attached_controller.mouseHandler)
-
-        while self._thread_is_running:
-            copy = self._attached_frame.get_current_frame_copy()
-            h,w = copy.shape[0],copy.shape[1]
-            #helptext = textwrap.wrap(HELP_STRING,width = 20)
-            if(self._show_help):
-                helptext = HELP_STRING.split('|')
-                start_x = 180
-                start_y = 20
-                line_spacing = 15
-                for i,text in enumerate(helptext):
-                    y = start_y + i*line_spacing
-                    cv2.putText(copy,str(text),(w-start_x,y),cv2.FONT_HERSHEY_DUPLEX,0.4,(255,0,0),1,cv2.CV_AA)
-
-            if (self._show_mouse_cursor):
-                cv2.putText(copy,"Drawing ROIs",(int(0.4*w),int(0.9*h)),cv2.FONT_HERSHEY_DUPLEX,0.4,(255,0,0),1,cv2.CV_AA)
-                cv2.putText(copy,str(self._mouse_cursor_coords),self._mouse_cursor_coords,cv2.FONT_HERSHEY_DUPLEX,0.4,(0,0,0),1,cv2.CV_AA)
-                cv2.line(copy,(self._mouse_cursor_coords[0],0),(self._mouse_cursor_coords[0],h),(0,0,0),1,cv2.CV_AA)
-                cv2.line(copy, (0,self._mouse_cursor_coords[1]), (w,self._mouse_cursor_coords[1]), (0, 0, 0), 1, cv2.CV_AA)
-                cv2.circle(copy,self._mouse_cursor_coords,6,(0,0,0),1,cv2.CV_AA)
-                if(self._setting_roi_now):
-                    cv2.rectangle(copy,self._set_roi_coord1,self._mouse_cursor_coords,(0,0,0),2,cv2.CV_AA)
+		if (self._show_mouse_cursor):
+			cv2.putText(copy,"Drawing ROIs",(int(0.4*w),int(0.9*h)),cv2.FONT_HERSHEY_DUPLEX,0.4,(255,0,0),1,cv2.CV_AA)
+			cv2.putText(copy,str(self._mouse_cursor_coords),self._mouse_cursor_coords,cv2.FONT_HERSHEY_DUPLEX,0.4,(0,0,0),1,cv2.CV_AA)
+			cv2.line(copy,(self._mouse_cursor_coords[0],0),(self._mouse_cursor_coords[0],h),(0,0,0),1,cv2.CV_AA)
+			cv2.line(copy, (0,self._mouse_cursor_coords[1]), (w,self._mouse_cursor_coords[1]), (0, 0, 0), 1, cv2.CV_AA)
+			cv2.circle(copy,self._mouse_cursor_coords,6,(0,0,0),1,cv2.CV_AA)
+		
+		if(self._setting_roi_now):
+			cv2.rectangle(copy,self._set_roi_coord1,self._mouse_cursor_coords,(0,0,0),2,cv2.CV_AA)
 
 
-            if(self._show_set_rois):
-                v1 = self._attached_model.get_set_rois()
-                try:
-                    self._rois_already_setup = v1[self._attached_frame]
-                except KeyError:
-                    pass
-                for set_roi in self._rois_already_setup:
-                    #set_roi = RoiWindow(self._attached_frame)
-                    #set_roi.set_roi_name('lol')
-                    #set_roi.set_coord1(100,100)
-                    #set_roi.set_coord2(300, 300)
+		if(self._show_set_rois):
+			v1 = self._attached_model.get_set_rois()
+		try:
+			self._rois_already_setup = v1[self._attached_frame]
+		except KeyError:
+			pass
+		for set_roi in self._rois_already_setup:
 
-                    cv2.rectangle(copy,set_roi.get_coord1_xy(),set_roi.get_coord2_xy(),(255,0,0),2,cv2.CV_AA)
-                    cv2.putText(copy, set_roi.get_roi_name(), (set_roi.get_coord1_xy()[0], set_roi.get_coord1_xy()[1] - 5),
-                                cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1, cv2.CV_AA)
+			cv2.rectangle(copy,set_roi.get_coord1_xy(),set_roi.get_coord2_xy(),(255,0,0),2,cv2.CV_AA)
+			cv2.putText(copy, set_roi.get_roi_name(), (set_roi.get_coord1_xy()[0], set_roi.get_coord1_xy()[1] - 5),
+			cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 0, 0), 1, cv2.CV_AA)
 
-            cv2.imshow(self._attached_frame_name, copy)
+		cv2.imshow(self._attached_frame_name, copy)
 
-            key = cv2.waitKey(1) & 0xFF
-            self._attached_controller.windowKeyHandler(key)
+		key = cv2.waitKey(1) & 0xFF
+		self._attached_controller.windowKeyHandler(key)
 
-    def setting_roi_now(self,set,coord1_xy):
-        self._setting_roi_now = set
-        if(self._setting_roi_now is False):
-            return
-        self._set_roi_coord1 = coord1_xy
+	def setting_roi_now(self,set,coord1_xy):
+		self._setting_roi_now = set
+		if(self._setting_roi_now is False): return
+		self._set_roi_coord1 = coord1_xy
 
-    def stop(self):
-        self._thread_is_running = False
-        print "Stopping %s" % self._attached_frame_name
+	def stop(self):
+		self._thread_is_running = False
+		print "Stopping %s" % self._attached_frame_name
 
 class Controller:
 
@@ -265,6 +270,7 @@ class SetupModel:
         except KeyError:
             self.rois_setup.update( { self.active_roiwin.parent_videoframe : [self.active_roiwin] })
         self.active_roiwin = None
+        print "rois_setup = ",self.rois_setup
 
     def save_roi_data_to_file(self):
         self.list_of_dicts_for_json = []

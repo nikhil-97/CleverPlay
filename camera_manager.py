@@ -30,6 +30,7 @@ class CameraManager(object):
         # return something like ['/dev/video0','/dev/video1','/dev/video2']
         devs = check_cam.get_connected_video_devices_paths()
         #print "devs = ",devs
+        #return ['/dev/video1']
         return devs
 
     def map_videoframes_from_camlist(self):
@@ -46,6 +47,7 @@ class CameraManager(object):
 			cam_info.update( { int(cam_i[-1]) : cam_name} )
 		
 		self._camera_framename_map.update( cam_info )
+		#self._camera_framename_map.update( { 0 : 'HP Truevision HD' } )
 
     def initialize_manager(self):
         self._camlist = self.get_connected_cameras_list()

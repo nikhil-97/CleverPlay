@@ -67,41 +67,43 @@ class ExecutionController(object):
 
 class ExecutionBranch:
 
-    def __init__(self,**kwargs):
-        self._cam_reader = kwargs['cam_reader']
-        self._videoframe = kwargs['videoframe']
-        self.data_mgr = kwargs['data_manager']
-        self.display_mgr = kwargs['display_manager']
-        self._initialized = False
+	def __init__(self,**kwargs):
+		self._cam_reader = kwargs['cam_reader']
+		self._videoframe = kwargs['videoframe']
+		self.data_mgr = kwargs['data_manager']
+		self.display_mgr = kwargs['display_manager']
+		self._initialized = False
 
-    def initialize(self):
-        self._roicontroller = roi_controller.RoiController()
-        self._roicontroller.attach_controller_to_videoframe(self._videoframe)
-        self._roicontroller.initialize_rois()
-        self._roicontroller.attach_video_processors_to_controlling_rois()
-        for vpu in self._roicontroller.get_attached_video_processors():
-            new_databin = data_manager.DataBin()
-            vpu.attach_data_bin(new_databin)
-            new_databin.register_with_data_manager(self.data_mgr)
+	def initialize(self):
+		self._roicontroller = roi_controller.RoiController()
+		self._roicontroller.attach_controller_to_videoframe(self._videoframe)
+		self._roicontroller.initialize_rois()
+		self._roicontroller.attach_video_processors_to_controlling_rois()
+		for vpu in self._roicontroller.get_attached_video_processors():
+			new_databin = data_manager.DataBin()
+			vpu.attach_data_bin(new_databin)
+			new_databin.register_with_data_manager(self.data_mgr)
+            #vpu.set_averaging_rate(0.005)
 
 
-    def start(self):
-        self._cam_reader.start_camreader()
-        logging.info("Waiting for valid VideoFrames")
+	def start(self):
+		self._cam_reader.start_camreader()
+		logging.info("Waiting for valid VideoFrames")
 
-        while (not self._cam_reader._frames_valid):
-            logging.info("_")
-            time.sleep(0.5)
-        logging.info("VideoFrames valid!")
+		while (not self._cam_reader._frames_valid):
+			logging.info("_")
+			time.sleep(0.5)
+		logging.info("VideoFrames valid!")
 
-        self._roicontroller.update_init_roiframes()
-        self._roicontroller.start_roi_controller()
-        self._roicontroller.update_init_frames_in_vpus()
-        self._roicontroller.start_attached_video_processors()
+		self._roicontroller.update_init_roiframes()
+		self._roicontroller.start_roi_controller()
+		self._roicontroller.update_init_frames_in_vpus()
+		self._roicontroller.start_attached_video_processors()
 
-        if (self.display_mgr is not None):
-            for vpu in self._roicontroller.get_attached_video_processors():
-                 self.display_mgr.attach_frame_to_display(vpu.debug_frame)
+		if (self.display_mgr is not None):
+			for vpu in self._roicontroller.get_attached_video_processors():
+				#self.display_mgr.attach_frame_to_display(vpu.debug_frame)
+				pass
 
 
 if __name__ == '__main__':
